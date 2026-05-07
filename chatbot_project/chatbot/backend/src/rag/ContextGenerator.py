@@ -1,0 +1,1 @@
+# build text which will be sent as context info to llm

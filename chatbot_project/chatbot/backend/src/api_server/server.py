@@ -1,0 +1,1 @@
+# singular post to handle received chat messages in frontend
