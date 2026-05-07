@@ -1,0 +1,55 @@
+import requests
+from requests import Response
+
+# headers needed because wikipedia gets mad about this but not user agent being minervachatbotbot 1.0
+def post_data(req_url: str, headers: dict[str, str], json_payload: dict | None) -> dict[str, dict|int|bool|str]:
+    response: Response | None = None
+    try:
+        response = requests.post(req_url, headers=headers, json=json_payload)
+        
+        try:
+            response_data = response.json()
+        except:
+            response_data = {"detail": response.text if response else "unknown error"}
+        
+        if not response.ok:
+            err_detail = response_data.get("detail", f"HTTP {response.status_code}")
+            return {"response_data": {"detail": err_detail}, "status_code": response.status_code, "response_ok": False}
+        
+        return {"response_data": response_data, "status_code": response.status_code, "response_ok": response.ok}
+
+    except requests.exceptions.RequestException as err:
+        print(f"[ERROR] API call error: {err}")
+        err_detail: str | None = None
+        if response:
+            try:
+                err_detail = response.json().get("detail")
+            except:
+                pass
+        return {"response_data": {"detail": err_detail if err_detail else str(err)}, "status_code": response.status_code if response else None, "response_ok": False}
+
+def get_data(req_url: str, headers: dict[str, str], params: dict[str, str]) -> dict[str, dict|int|bool|str]:
+    response: Response | None = None
+    try:
+        response = requests.get(req_url, headers=headers, params=params)
+        
+        try:
+            response_data = response.json()
+        except:
+            response_data = {"detail": response.text if response else "unknown error"}
+        
+        if not response.ok:
+            err_detail = response_data.get("detail", f"HTTP {response.status_code}")
+            return {"response_data": {"detail": err_detail}, "status_code": response.status_code, "response_ok": False}
+        
+        return {"response_data": response_data, "status_code": response.status_code, "response_ok": True}
+
+    except requests.exceptions.RequestException as err:
+        print(f"[ERROR] API call error: {err}")
+        err_detail: str | None = None
+        if response:
+            try:
+                err_detail = response.json().get("detail")
+            except:
+                pass
+        return {"response_data": {"detail": err_detail if err_detail else str(err)}, "status_code": response.status_code if response else None, "response_ok": False}

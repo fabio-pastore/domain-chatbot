@@ -1,0 +1,66 @@
+services:
+  chatbot_backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./backend:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - OLLAMA_URL=http://ollama:11434/api/generate
+      - OLLAMA_MODEL=llama3
+    depends_on:
+      ollama-init:
+        condition: service_completed_successfully
+
+  chatbot_frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./frontend:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - chatbot_backend
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  ollama-init:
+    image: ollama/ollama:latest
+    environment:
+      - OLLAMA_HOST=ollama:11434
+    depends_on:
+      - ollama
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "
+      echo 'Waiting for Ollama API...';
+      while ! ollama list >/dev/null 2>&1; do sleep 2; done;
+      echo 'Ollama API ready!';
+      if ! ollama list | grep -q 'llama3'; then
+        echo 'Pulling llama3 (this may take a few minutes for the first boot)...';
+        ollama pull llama3;
+      else
+        echo 'llama3 model already downloaded!';
+      fi
+      "
+
+volumes:
+  ollama_data:

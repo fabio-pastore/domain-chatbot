@@ -1,0 +1,38 @@
+from src.url_retriever.UrlRetriever import UrlRetriever
+from src.utils.requests_get_post_utils import *
+
+class WikipediaUrlRetriever(UrlRetriever):
+
+    __WIKIPEDIA_API_URL: str = "https://it.wikipedia.org/w/api.php"
+    __WIKIPEDIA_SEARCH_RESULT_LIMIT: str = "3"
+
+    def __init__(self):
+        super().__init__()
+
+    def retrieve_relevant_urls(self, search_query: str) -> list[str]:
+        search_params: dict[str, str] = {
+            "action": "query",
+            "list": "search",
+            "srsearch": search_query,
+            "srlimit": WikipediaUrlRetriever.__WIKIPEDIA_SEARCH_RESULT_LIMIT,
+            "format": "json"
+        }
+        req_header: dict[str, str] = {
+            "User-Agent": "MinervaChatbotBot/1.0"   # yes because it's sigma so it won't block us
+        }
+        data = get_data(req_url=WikipediaUrlRetriever.__WIKIPEDIA_API_URL, headers=req_header, params=search_params)
+        if (data.get("response_ok")):
+            search_results = data.get("response_data", {}).get("query", {}).get("search", [])
+            formatted_results = []
+            for item in search_results:
+                title = item.get("title", "")
+                url_title = title.replace(" ", "_")
+                formatted_results.append({
+                    "url": f"https://it.wikipedia.org/wiki/{url_title}",
+                    "title": title,
+                    "snippet": item.get("snippet", "")
+                })
+            return formatted_results
+        else:
+            print(f"[WikipediaUrlRetriever] | [ERROR] Failed to search via Wikipedia API: {data.get('response_data')}")
+            return []

@@ -1,6 +1,0 @@
-crawl4ai
-beautifulsoup4
-regex
-fastapi
-uvicorn
-pydantic
