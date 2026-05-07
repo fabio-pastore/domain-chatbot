@@ -1,0 +1,15 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8003:8003"
+    image: minerva-web-parser
+    volumes:
+      - ./gs_data:/app/gs_data
+      - ./domains.json:/app/domains.json
+  frontend:
+    build: ./frontend
+    ports:
+      - "8004:8004"
+    depends_on:
+      - backend
