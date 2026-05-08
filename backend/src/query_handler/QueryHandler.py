@@ -15,7 +15,7 @@ class QueryHandler:
         self.wiki_retriever = WikipediaUrlRetriever()
 
     def process_query(self, session_id: str, raw_query: str) -> IntentResult:
-        is_allowed = llm_responder.check_guardrails(raw_query)
+        is_allowed: bool = llm_responder.check_guardrails(raw_query)
         if not is_allowed:
             return IntentResult(
                 standalone_query=raw_query,
@@ -26,14 +26,14 @@ class QueryHandler:
         history_str = chat_history_manager.get_history_string(session_id)
         
         if history_str != "No previous history.":
-            standalone_query = llm_responder.rewrite_query(history_str, raw_query)
+            standalone_query: str = llm_responder.rewrite_query(history_str, raw_query)
         else:
-            standalone_query = raw_query
+            standalone_query: str = raw_query
         
-        relevant_urls = []
+        relevant_urls: list[str] = []
         if is_allowed:
             search_query = standalone_query
-            search_results = self.url_retriever.retrieve_relevant_urls(search_query)
+            search_results: list[dict[str, str]] = self.url_retriever.retrieve_relevant_urls(search_query)
             
             if not search_results:
                 print(f"[QueryHandler] DuckDuckGo returned 0 results for '{search_query}'. Falling back to Wikipedia...")
@@ -51,7 +51,7 @@ class QueryHandler:
             relevant_urls=relevant_urls
         )
     
-    def answer_query(self, session_id: str, query: str, query_context_data: str, references: list[str]) -> str:
-        return llm_responder.answer_user_query(query, query_context_data, references)
+    def answer_query(self, session_id: str, query: str, query_context_data: str) -> str:
+        return llm_responder.answer_user_query(query, query_context_data)
 
 query_handler = QueryHandler()

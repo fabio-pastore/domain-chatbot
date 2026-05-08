@@ -48,8 +48,8 @@ class LLMResponder(OllamaResponder):
                 
         return unique_urls
     
-    def answer_user_query(self, query: str, query_context_data: str, refs: list[str]) -> str:
-        prompt = PromptBuilder.build_answer_user_query_prompt(query, query_context_data, refs)
+    def answer_user_query(self, query: str, query_context_data: str) -> str:
+        prompt = PromptBuilder.build_answer_user_query_prompt(query, query_context_data)
         response = self._call_ollama(prompt)
         return response
 

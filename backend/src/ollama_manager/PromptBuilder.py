@@ -58,8 +58,9 @@ class PromptBuilder:
         return prompt
     
     @staticmethod
-    def build_answer_user_query_prompt(query: str, query_context_data: str, references: list[str]) -> str:
-        prompt = f"""Sei un assistente che risponde solo basandosi sui testi forniti.
+    def build_answer_user_query_prompt(query: str, query_context_data: str) -> str:
+        prompt = f"""
+        Sei un assistente che risponde solo basandosi sui testi forniti.
         Se le informazioni non sono presenti nei testi, dillo esplicitamente, ad esempio: "Mi dispiace, non ho informazioni sufficienti per rispondere a questa domanda". 
         Se questo è il caso, NON serve aggiungere altro, non devi fornire giustificazioni.
 
@@ -68,11 +69,6 @@ class PromptBuilder:
         TESTI DI RIFERIMENTO:
         {query_context_data}
 
-        FONTI:
-        {" ".join(references)}
-
         DOMANDA: {query}
-
-        [IMPORTANTE] Dopo la tua risposta elenca gli URL di riferimento inseriti sotto "FONTI" in questo formato "(FONTI: url1, url2, ..., urln)"
-        RISPOSTA:"""
+        """
         return prompt

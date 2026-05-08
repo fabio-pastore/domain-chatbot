@@ -9,7 +9,7 @@ class WikipediaUrlRetriever(UrlRetriever):
     def __init__(self):
         super().__init__()
 
-    def retrieve_relevant_urls(self, search_query: str) -> list[str]:
+    def retrieve_relevant_urls(self, search_query: str) -> list[dict[str, str]]:
         search_params: dict[str, str] = {
             "action": "query",
             "list": "search",

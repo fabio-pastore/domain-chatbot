@@ -17,8 +17,8 @@ class ChatInput(BaseModel):
 
 class ChatOutput(BaseModel):
     info: str
-    query_answer: str
-    standalone_query: str = None
+    query_answer: str = ""
+    standalone_query: str = ""
     relevant_urls: list[str] = []
     extracted_content: list[dict] = []
     reference_urls: set[str] = set()
@@ -36,7 +36,7 @@ def chat(message: ChatInput) -> ChatOutput:
         chat_history_manager.add_message(message.session_id, "user", message.query)
         chat_history_manager.add_message(message.session_id, "assistant", rejection_msg)
         return ChatOutput(
-            response=rejection_msg,
+            info=rejection_msg,
             standalone_query=intent_result.standalone_query,
             status="rejected",
         )
@@ -75,7 +75,7 @@ def chat(message: ChatInput) -> ChatOutput:
         extracted_chunks=relevant_chunks
     )
 
-    llm_answer: str = query_handler.answer_query(message.session_id, intent_result.standalone_query, query_context_data, reference_urls)
+    llm_answer: str = query_handler.answer_query(message.session_id, intent_result.standalone_query, query_context_data)
 
     success_msg = f"Query accepted! Rewritten as: '{intent_result.standalone_query}'. Found {urls_found} URLs, parsed {parsed_count} via MWP."
 
