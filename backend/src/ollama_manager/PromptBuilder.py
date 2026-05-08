@@ -70,5 +70,5 @@ class PromptBuilder:
         {query_context_data}
 
         DOMANDA: {query}
-        """
+        RISPOSTA:"""
         return prompt

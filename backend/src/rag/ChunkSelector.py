@@ -1,5 +1,6 @@
 from src.rag.TextEmbedder import TextEmbedder
 import numpy as np
+
 class ChunkSelector:
 
     __MAX_OUTPUT_LENGTH: int = 3600 #4 chunks, small models degrade significantly when the prompt gets long 
@@ -11,6 +12,12 @@ class ChunkSelector:
     def __calculate_cosine_similarity(v1, v2) -> float:
         """
         Calculates the cosine similarity between two numeric vectors.
+        Args:
+            v1 (list[float]): The first vector.
+            v2 (list[float]): The second vector.
+
+        Returns:
+            float: The cosine similarity between the two vectors.
         """
         vec_a = np.array(v1)
         vec_b = np.array(v2)
@@ -28,6 +35,15 @@ class ChunkSelector:
     # chonker
     @classmethod
     def __chunking(cls, page: str) -> list[str]:
+        """
+        Splits a page of text by newlines into chunks of a specified max size.
+
+        Args:
+            page (str): The text to be chunked.
+
+        Returns:
+            list[str]: A list of text chunks.
+        """
         chunks = []
         curr_chunk: str = "" 
         
@@ -61,7 +77,16 @@ class ChunkSelector:
     
     @classmethod
     def select_relevant_chunks(cls, query: str, parsed_pages: list[tuple[str, str]]) -> dict[str, list[str]]:
+        """
+        Selects relevant chunks from parsed pages based on a query using cosine similarity.
     
+        Args:
+            query (str): The query string.
+            parsed_pages (list[tuple[str, str]]): A list of tuples containing a URL and the corresponding text.
+
+        Returns:
+            dict[str, list[str]]: A dictionary mapping URLs to lists of relevant text chunks.
+        """
         query_vector: list[float] = TextEmbedder.embed_text(query) 
         chunk_data: dict[str, list[tuple[str, list[float]]]] = {} # each url is mapped to a list of pairs <chunk, chunk_vec_representation>
         chunk_vecs: list[tuple[str, str, list[float]]] = []
@@ -78,7 +103,6 @@ class ChunkSelector:
                 c_vec: list[float] = TextEmbedder.embed_text(c)
                 chunk_data[url].append((c, c_vec)) 
                 chunk_vecs.append((url, c, c_vec)) 
-
 
         chunk_scores: list[tuple[str, str, float]] = []
         

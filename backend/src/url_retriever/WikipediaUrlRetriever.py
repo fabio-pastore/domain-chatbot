@@ -7,9 +7,21 @@ class WikipediaUrlRetriever(UrlRetriever):
     __WIKIPEDIA_SEARCH_RESULT_LIMIT: str = "3"
 
     def __init__(self):
+        """
+        Initializes the WikipediaUrlRetriever instance.
+        """
         super().__init__()
 
     def retrieve_relevant_urls(self, search_query: str) -> list[dict[str, str]]:
+        """
+        Retrieves relevant URLs from Wikipedia based on the search query.
+
+        Args:
+            search_query (str): The search query to look up on Wikipedia.
+
+        Returns:
+            list[dict[str, str]]: A list of dictionaries containing the URL, title, and snippet of each search result.
+        """
         search_params: dict[str, str] = {
             "action": "query",
             "list": "search",

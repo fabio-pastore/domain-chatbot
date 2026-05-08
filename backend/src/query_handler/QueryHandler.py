@@ -11,10 +11,23 @@ class IntentResult(BaseModel):
 
 class QueryHandler:
     def __init__(self):
+        """
+        Initializes the QueryHandler with URL retrievers.
+        """
         self.url_retriever = DuckDuckGoUrlRetriever(max_results=5)
         self.wiki_retriever = WikipediaUrlRetriever()
 
     def process_query(self, session_id: str, raw_query: str) -> IntentResult:
+        """
+        Processes a query into a standalone query, checks guardrails, retrieves relevant URLs, and returns the result.
+
+        Args:
+            session_id (str): The unique identifier for the session.
+            raw_query (str): The raw query string from the user.
+
+        Returns:
+            IntentResult: An object containing the standalone query, whether it's allowed, and relevant URLs.
+        """
         is_allowed: bool = llm_responder.check_guardrails(raw_query)
         if not is_allowed:
             return IntentResult(
@@ -52,6 +65,18 @@ class QueryHandler:
         )
     
     def answer_query(self, session_id: str, query: str, query_context_data: str) -> str:
+        """
+        Answers a user query using the LLM responder.
+
+        Args:
+            session_id (str): The unique identifier for the session.
+            query (str): The query string from the user.
+            query_context_data (str): Additional context data (relevant chunks) for the query.
+
+        Returns:
+            str: The answer to the user's query.
+        """
         return llm_responder.answer_user_query(query, query_context_data)
 
 query_handler = QueryHandler()
+
