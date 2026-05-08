@@ -7,7 +7,7 @@ class OllamaResponder(ABC):
         self.ollama_url = ollama_url
         self.ollama_model = ollama_model
 
-    def _call_ollama(self, prompt: str, embed: bool = False) -> str:
+    def _call_ollama(self, prompt: str, embed: bool = False) -> str | list[float]:
         payload = {
             "model": self.ollama_model,
             "prompt": prompt,
@@ -19,7 +19,7 @@ class OllamaResponder(ABC):
             response.raise_for_status()
             data = response.json()
             if embed:
-                return data.get("embedding", "") # list[float]
+                return data.get("embedding", []) # list[float]
             else:
                 return data.get("response", "").strip()
         except requests.exceptions.RequestException as e:

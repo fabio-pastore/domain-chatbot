@@ -2,8 +2,10 @@ from src.rag.TextEmbedder import TextEmbedder
 import numpy as np
 class ChunkSelector:
 
-    __MAX_OUTPUT_LENGTH: int = 6000
-    __CHUNK_SIZE: int = 1000
+    __MAX_OUTPUT_LENGTH: int = 3600 #4 chunks, small models degrade significantly when the prompt gets long 
+    __CHUNK_SIZE: int = 900 #n of characters, lower = more precision but may cut a paragraph in half, higher = more context but may include irrelevant info and dilute embedding vector
+    #__SIMILARITY_THRESHOLD: float = 0.75 #0.0 to 1.0, lower = more chunks, higher = less chunks
+    #TODO: make use of __SIMILARITY_THRESHOLD to filter out chunks that are too dissimilar to the query, mitigating issues caused by __MAX_OUTPUT_LENGTH being too high
 
     @staticmethod
     def __calculate_cosine_similarity(v1, v2) -> float:
@@ -37,6 +39,11 @@ class ChunkSelector:
                 
                 chunks.append(p[:cls.__CHUNK_SIZE])
                 p = p[cls.__CHUNK_SIZE:]
+                '''
+                TODO: low priority, minor improvement.
+                Add __CHUNK_OVERLAP = 120 
+                Sliding window overlap between chunks (only those that are suddenly cut off) to avoid cutting words and sentences in half
+                '''
 
             separator = "\n" if curr_chunk else ""
             
@@ -80,11 +87,16 @@ class ChunkSelector:
             chunk_scores.append((url, chunk_text, score)) 
                 
         chunk_scores.sort(key=lambda x: x[2], reverse=True) # score is in second position
-        scores = [elem[2] for elem in chunk_scores]
+        # scores = [elem[2] for elem in chunk_scores]
         # print(scores)
         
         selected = []
         total_chars = 0
+        
+        '''TODO: Re-rank after retrieval: Cosine similarity alone is noisy. 
+        After fetching top-10, use a cross-encoder or simple keyword overlap score to re-rank and pick the final top-4.
+        '''
+        
         for url, chunk , _ in chunk_scores:
              if total_chars + len(chunk) > cls.__MAX_OUTPUT_LENGTH:
                  break
