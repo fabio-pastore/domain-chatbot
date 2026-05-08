@@ -1,13 +1,12 @@
 from src.url_retriever.UrlRetriever import UrlRetriever
 from ddgs import DDGS
-from typing import List, Dict, Any
 
 class DuckDuckGoUrlRetriever(UrlRetriever):
     def __init__(self, max_results: int = 5):
         super().__init__()
         self.max_results = max_results
 
-    def retrieve_relevant_urls(self, search_query: str) -> List[Dict[str, str]]:
+    def retrieve_relevant_urls(self, search_query: str) -> list[dict[str, str]]:
         """
         Searches DuckDuckGo and returns a list of dictionaries containing 'url', 'title', and 'body' (snippet).
         """

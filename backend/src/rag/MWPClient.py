@@ -1,6 +1,5 @@
 import requests
 import os
-from typing import Optional
 
 class MWPClient:
     """
@@ -22,7 +21,7 @@ class MWPClient:
         return False
 
     @classmethod
-    def parse_url(cls, url: str) -> Optional[str]:
+    def parse_url(cls, url: str) -> str | None:
         """
         Sends the URL to MWP and returns the extracted Markdown content
         Returns None if parsing fails
@@ -38,5 +37,3 @@ class MWPClient:
         except requests.exceptions.RequestException as e:
             print(f"[MWPClient] | [ERROR] Failed to connect to MWP: {e}")
             return None
-
-mwp_client = MWPClient()

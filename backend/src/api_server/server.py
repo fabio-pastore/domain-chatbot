@@ -2,7 +2,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from src.query_handler.QueryHandler import query_handler
 from src.db_manager.ChatHistoryManager import chat_history_manager
-from src.rag.MWPClient import mwp_client
+from src.rag.MWPClient import MWPClient
+from src.rag.ChunkSelector import ChunkSelector
+from src.rag.ContextGenerator import ContextGenerator
 
 app = FastAPI()
 
@@ -32,11 +34,13 @@ def chat(message: ChatInput) -> ChatOutput:
             status="rejected"
         )
 
-    extracted_contents = []
+    extracted_contents: list[dict[str, str]] = []
+    parsed_content: list[tuple[str, str]] = [] # a list of tuples containing pairs <url, parsed_text>
     for url in intent_result.relevant_urls:
-        if mwp_client.is_domain_supported(url):
-            parsed_text = mwp_client.parse_url(url)
+        if MWPClient.is_domain_supported(url):
+            parsed_text = MWPClient.parse_url(url)
             if parsed_text:
+                parsed_content.append((url, parsed_text))
                 extracted_contents.append({
                     "url": url,
                     "content_preview": parsed_text[:300] + "..." # return a preview for testing
@@ -45,6 +49,12 @@ def chat(message: ChatInput) -> ChatOutput:
     urls_found = len(intent_result.relevant_urls)
     parsed_count = len(extracted_contents)
     success_msg = f"Query accepted! Rewritten as: '{intent_result.standalone_query}'. Found {urls_found} URLs, parsed {parsed_count} via MWP."
+
+    rag_data: dict[str, list[str]] = ChunkSelector.select_relevant_chunks(query=intent_result.standalone_query, parsed_pages=parsed_content)
+    relevant_chunks: set[str] = set(rag_data.values())
+    reference_urls: set[str] = set(rag_data.keys())
+
+    query_context_data: str = ContextGenerator.generate_llm_context(extracted_chunks=relevant_chunks)
     
     chat_history_manager.add_message(message.session_id, "user", message.query)
     chat_history_manager.add_message(message.session_id, "assistant", success_msg)
