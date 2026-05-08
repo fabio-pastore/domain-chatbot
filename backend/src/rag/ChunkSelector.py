@@ -2,11 +2,14 @@ from src.rag.TextEmbedder import TextEmbedder
 import numpy as np
 
 class ChunkSelector:
-
+    
+    '''
+    __CHUNK_SIZE: n of characters, lower = more precision but may cut a paragraph in half, 
+    higher = more context but may include irrelevant info and dilute embedding vector
+    '''
+    __CHUNK_SIZE: int = 900 
     __MAX_OUTPUT_LENGTH: int = 3600 #4 chunks, small models degrade significantly when the prompt gets long 
-    __CHUNK_SIZE: int = 900 #n of characters, lower = more precision but may cut a paragraph in half, higher = more context but may include irrelevant info and dilute embedding vector
-    #__SIMILARITY_THRESHOLD: float = 0.75 #0.0 to 1.0, lower = more chunks, higher = less chunks
-    #TODO: make use of __SIMILARITY_THRESHOLD to filter out chunks that are too dissimilar to the query, mitigating issues caused by __MAX_OUTPUT_LENGTH being too high
+    __SIMILARITY_THRESHOLD: float = 0.75 #0.0 to 1.0
 
     @staticmethod
     def __calculate_cosine_similarity(v1, v2) -> float:
@@ -88,7 +91,6 @@ class ChunkSelector:
             dict[str, list[str]]: A dictionary mapping URLs to lists of relevant text chunks.
         """
         query_vector: list[float] = TextEmbedder.embed_text(query) 
-        chunk_data: dict[str, list[tuple[str, list[float]]]] = {} # each url is mapped to a list of pairs <chunk, chunk_vec_representation>
         chunk_vecs: list[tuple[str, str, list[float]]] = []
 
         for page in parsed_pages:
@@ -96,19 +98,16 @@ class ChunkSelector:
             text_lower = page[1].lower() 
             chunks = cls.__chunking(text_lower)
             
-            if url not in chunk_data:
-                chunk_data[url] = [] 
-                
             for c in chunks:
                 c_vec: list[float] = TextEmbedder.embed_text(c)
-                chunk_data[url].append((c, c_vec)) 
                 chunk_vecs.append((url, c, c_vec)) 
 
         chunk_scores: list[tuple[str, str, float]] = []
         
         for url, chunk_text, c_vec in chunk_vecs:
             score = cls.__calculate_cosine_similarity(query_vector, c_vec)
-            chunk_scores.append((url, chunk_text, score)) 
+            if score >= cls.__SIMILARITY_THRESHOLD:#filter out chunks that are too dissimilar to the query, mitigating issues caused lack of useful chunks
+                chunk_scores.append((url, chunk_text, score)) 
                 
         chunk_scores.sort(key=lambda x: x[2], reverse=True) # score is in second position
         # scores = [elem[2] for elem in chunk_scores]
