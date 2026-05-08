@@ -24,9 +24,9 @@ class ChunkSelector:
         Selezione semplice basata su keyword overlap.
         Niente embedding e modelli extra.
         """
-        query_tokens = set(query.lower().split())
+        query_tokens: set[str] = set(query.lower().split())
         
-        scored = set() # url: [(score, chunk)]
+        scored: list[tuple[str, int, str]] = [] # list of triplets (url, score, chunk)
         for page in parsed_pages:
             text_lower = page[1].lower() # extract parsed_text, [0] is url
             chunks = cls.chunking(text_lower)
@@ -34,7 +34,7 @@ class ChunkSelector:
 
             for chunk in chunks:
                 score = sum(1 for token in query_tokens if token in chunk)  # conta numero di apparizioni di ogni token
-                scored.add((url, score, chunk))
+                scored.append((url, score, chunk))
                 
         '''
         results: list[tuple[str, str, int]] = []
@@ -49,17 +49,19 @@ class ChunkSelector:
         # prende le pagine più rilevanti fino al limite di caratteri
         selected = []
         total_chars = 0
-        for url, score, chunk in scored:
+        for url, _ , chunk in scored:
             if total_chars + cls.__CHUNK_SIZE > cls.__MAX_OUTPUT_LENGTH:
                 break
+
             selected.append((url, chunk))
             total_chars += cls.__CHUNK_SIZE
 
+        # transform into dict for output
         out: dict[str, list[str]] = {}
-        for entry in selected: # NOTE: selected contains pairs <url, selected_chunk>
-            if entry[0] not in out:
-                out[entry[0]] = [entry[1]]
+        for url, chunk in selected: # NOTE: selected contains pairs <url, selected_chunk>
+            if url not in out:
+                out[url] = [chunk]
             else:
-                out[entry[0]].append(entry[1])
+                out[url].append(chunk)
         
         return out
