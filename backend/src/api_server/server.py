@@ -5,6 +5,7 @@ from src.db_manager.ChatHistoryManager import chat_history_manager
 from src.rag.MWPClient import MWPClient
 from src.rag.ChunkSelector import ChunkSelector
 from src.rag.ContextGenerator import ContextGenerator
+from src.rag.TextEmbedder import TextEmbedder
 
 app = FastAPI()
 
@@ -15,7 +16,8 @@ class ChatInput(BaseModel):
 
 
 class ChatOutput(BaseModel):
-    response: str
+    info: str
+    query_answer: str
     standalone_query: str = None
     relevant_urls: list[str] = []
     extracted_content: list[dict] = []
@@ -40,9 +42,8 @@ def chat(message: ChatInput) -> ChatOutput:
         )
 
     extracted_contents: list[dict[str, str]] = []
-    parsed_content: list[tuple[str, str]] = (
-        []
-    )  # a list of tuples containing pairs <url, parsed_text>
+    parsed_content: list[tuple[str, str]] = [] # a list of tuples containing pairs <url, parsed_text>
+
     for url in intent_result.relevant_urls:
         if MWPClient.is_domain_supported(url):
             parsed_text = MWPClient.parse_url(url)
@@ -58,7 +59,6 @@ def chat(message: ChatInput) -> ChatOutput:
 
     urls_found = len(intent_result.relevant_urls)
     parsed_count = len(extracted_contents)
-    success_msg = f"Query accepted! Rewritten as: '{intent_result.standalone_query}'. Found {urls_found} URLs, parsed {parsed_count} via MWP."
 
     rag_data: dict[str, list[str]] = ChunkSelector.select_relevant_chunks(
         query=intent_result.standalone_query, parsed_pages=parsed_content
@@ -70,15 +70,21 @@ def chat(message: ChatInput) -> ChatOutput:
 
     reference_urls: set[str] = set(rag_data.keys())
 
+    # we will later pass this to LLM
     query_context_data: str = ContextGenerator.generate_llm_context(
         extracted_chunks=relevant_chunks
     )
+
+    llm_answer: str = query_handler.answer_query(message.session_id, intent_result.standalone_query, query_context_data, reference_urls)
+
+    success_msg = f"Query accepted! Rewritten as: '{intent_result.standalone_query}'. Found {urls_found} URLs, parsed {parsed_count} via MWP."
 
     chat_history_manager.add_message(message.session_id, "user", message.query)
     chat_history_manager.add_message(message.session_id, "assistant", success_msg)
 
     return ChatOutput(
-        response=success_msg,
+        info=success_msg,
+        query_answer=llm_answer,
         standalone_query=intent_result.standalone_query,
         relevant_urls=intent_result.relevant_urls,
         extracted_content=extracted_contents,

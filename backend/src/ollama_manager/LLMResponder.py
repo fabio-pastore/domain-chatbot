@@ -1,34 +1,19 @@
 import os
-import requests
-from src.llm_manager.PromptBuilder import PromptBuilder
-
-class LLMResponder:
+from src.ollama_manager.OllamaResponder import OllamaResponder
+from src.ollama_manager.PromptBuilder import PromptBuilder
+class LLMResponder(OllamaResponder):
     def __init__(self):
-        self.ollama_url = os.getenv("OLLAMA_URL", "http://host.docker.internal:11434/api/generate")
-        self.model_name = os.getenv("OLLAMA_MODEL", "llama3")
-
-    def _call_ollama(self, prompt: str) -> str:
-        payload = {
-            "model": self.model_name,
-            "prompt": prompt,
-            "stream": False
-        }
-        
-        try:
-            response = requests.post(self.ollama_url, json=payload, timeout=30)
-            response.raise_for_status()
-            data = response.json()
-            return data.get("response", "").strip()
-        except requests.exceptions.RequestException as e:
-            print(f"Error connecting to Ollama: {e}")
-            return ""
+        super().__init__(
+            ollama_url = os.getenv("OLLAMA_LLM_URL", "http://host.docker.internal:11434/api/generate"),
+            ollama_model = os.getenv("OLLAMA_LLM_MODEL", "llama3")
+        )
 
     def rewrite_query(self, chat_history: str, current_query: str) -> str:
         prompt = PromptBuilder.build_query_rewrite_prompt(chat_history, current_query)
         response = self._call_ollama(prompt)
         return response if response else current_query
 
-    def check_guardrails(self, query: str, domain: str = "video games and AI") -> bool:
+    def check_guardrails(self, query: str, domain: str = "video games and AI") -> bool: # what is this? 
         prompt = PromptBuilder.build_guardrail_prompt(query, domain)
         response = self._call_ollama(prompt)
         
@@ -62,5 +47,10 @@ class LLMResponder:
                 unique_urls.append(url)
                 
         return unique_urls
+    
+    def answer_user_query(self, query: str, query_context_data: str, refs: list[str]) -> str:
+        prompt = PromptBuilder.build_answer_user_query_prompt(query, query_context_data, refs)
+        response = self._call_ollama(prompt)
+        return response
 
 llm_responder = LLMResponder()

@@ -11,7 +11,8 @@ class PromptBuilder:
                     3. Do NOT include any conversational filler, notes, or explanations.
                     4. Do NOT wrap the query in quotes.
                     5. Do NOT use search operators like '+', ':', or 'AND'. Keep it natural language.
-                    6. ALWAYS translate and rewrite the query into ITALIAN. This is critical because the search engines we use are restricted to Italian domains (e.g. it.wikipedia.org).
+                    6. Rewrite the query into as little words as possible, stricly including ONLY what is NEEDED to search for the answer on a search engine.
+                    7. CRITICAL - ALWAYS translate and rewrite the query into ITALIAN.
 
                     Chat History:
                     {chat_history}
@@ -54,4 +55,24 @@ class PromptBuilder:
                     {search_results}
                     
                     Relevant URLs:"""
+        return prompt
+    
+    @staticmethod
+    def build_answer_user_query_prompt(query: str, query_context_data: str, references: list[str]) -> str:
+        prompt = f"""Sei un assistente che risponde solo basandosi sui testi forniti.
+        Se le informazioni non sono presenti nei testi, dillo esplicitamente, ad esempio: "Mi dispiace, non ho informazioni sufficienti per rispondere a questa domanda". 
+        Se questo è il caso, NON serve aggiungere altro, non devi fornire giustificazioni.
+
+        NON menzionare di essere a conoscenza delle informazioni grazie ai testi di riferimento. Sei onnisciente!
+
+        TESTI DI RIFERIMENTO:
+        {query_context_data}
+
+        FONTI:
+        {" ".join(references)}
+
+        DOMANDA: {query}
+
+        [IMPORTANTE] Dopo la tua risposta elenca gli URL di riferimento inseriti sotto "FONTI" in questo formato "(FONTI: url1, url2, ..., urln)"
+        RISPOSTA:"""
         return prompt

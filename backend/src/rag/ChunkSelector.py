@@ -1,67 +1,103 @@
+from src.rag.TextEmbedder import TextEmbedder
+import numpy as np
 class ChunkSelector:
 
     __MAX_OUTPUT_LENGTH: int = 6000
     __CHUNK_SIZE: int = 1000
 
+    @staticmethod
+    def __calculate_cosine_similarity(v1, v2) -> float:
+        """
+        Calculates the cosine similarity between two numeric vectors.
+        """
+        vec_a = np.array(v1)
+        vec_b = np.array(v2)
+        
+        dot_product = np.dot(vec_a, vec_b)
+        
+        norm_a = np.linalg.norm(vec_a)
+        norm_b = np.linalg.norm(vec_b)
+    
+        if norm_a == 0.0 or norm_b == 0.0:
+            return 0.0
+            
+        return dot_product / (norm_a * norm_b)
+
     # chonker
     @classmethod
-    def chunking(cls, page: str) -> list[str]:
-        """
-        Divide una pagina in chunk di dimensione __CHUNK_SIZE. Ultimo chunk può essere più corto.
-        """
+    def __chunking(cls, page: str) -> list[str]:
         chunks = []
-        for i in range(0, len(page), cls.__CHUNK_SIZE):
-            if (i + cls.__CHUNK_SIZE) <= len(page):
-                chunks.append(page[i:i + cls.__CHUNK_SIZE])
-            else:
-                chunks.append(page[i:])
+        curr_chunk: str = "" 
         
+        for p in page.split("\n"):
+            while len(p) > cls.__CHUNK_SIZE:
+                if curr_chunk:
+                    chunks.append(curr_chunk)
+                    curr_chunk = ""
+                
+                chunks.append(p[:cls.__CHUNK_SIZE])
+                p = p[cls.__CHUNK_SIZE:]
+
+            separator = "\n" if curr_chunk else ""
+            
+            if (len(curr_chunk) + len(separator) + len(p) <= cls.__CHUNK_SIZE):
+                curr_chunk += (separator + p)
+            else:
+                if curr_chunk: 
+                    chunks.append(curr_chunk)
+                curr_chunk = p 
+                
+        if curr_chunk:
+            chunks.append(curr_chunk)
+            
         return chunks
     
     @classmethod
     def select_relevant_chunks(cls, query: str, parsed_pages: list[tuple[str, str]]) -> dict[str, list[str]]:
-        """
-        Selezione semplice basata su keyword overlap.
-        Niente embedding e modelli extra.
-        """
-        query_tokens: set[str] = set(query.lower().split())
-        
-        scored: list[tuple[str, int, str]] = [] # list of triplets (url, score, chunk)
-        for page in parsed_pages:
-            text_lower = page[1].lower() # extract parsed_text, [0] is url
-            chunks = cls.chunking(text_lower)
-            url = page[0]
+    
+        query_vector: list[float] = TextEmbedder.embed_text(query) 
+        chunk_data: dict[str, list[tuple[str, list[float]]]] = {} # each url is mapped to a list of pairs <chunk, chunk_vec_representation>
+        chunk_vecs: list[tuple[str, str, list[float]]] = []
 
-            for chunk in chunks:
-                score = sum(1 for token in query_tokens if token in chunk)  # conta numero di apparizioni di ogni token
-                scored.append((url, score, chunk))
+        for page in parsed_pages:
+            url = page[0]
+            text_lower = page[1].lower() 
+            chunks = cls.__chunking(text_lower)
+            
+            if url not in chunk_data:
+                chunk_data[url] = [] 
                 
-        '''
-        results: list[tuple[str, str, int]] = []
-        for url, value in scored.items():   
-            for score, chunk in value:
-                results.append((url, score, chunk))
-        '''
-              
-        # ordina per rilevanza basandosi su score
-        scored.sort(key=lambda x: x[1], reverse=True) # sort based on score
+            for c in chunks:
+                c_vec: list[float] = TextEmbedder.embed_text(c)
+                chunk_data[url].append((c, c_vec)) 
+                chunk_vecs.append((url, c, c_vec)) 
+
+
+        chunk_scores: list[tuple[str, str, float]] = []
         
-        # prende le pagine più rilevanti fino al limite di caratteri
+        for url, chunk_text, c_vec in chunk_vecs:
+            score = cls.__calculate_cosine_similarity(query_vector, c_vec)
+            chunk_scores.append((url, chunk_text, score)) 
+                
+        chunk_scores.sort(key=lambda x: x[2], reverse=True) # score is in second position
+        scores = [elem[2] for elem in chunk_scores]
+        # print(scores)
+        
         selected = []
         total_chars = 0
-        for url, _ , chunk in scored:
-            if total_chars + cls.__CHUNK_SIZE > cls.__MAX_OUTPUT_LENGTH:
-                break
+        for url, chunk , _ in chunk_scores:
+             if total_chars + len(chunk) > cls.__MAX_OUTPUT_LENGTH:
+                 break
 
-            selected.append((url, chunk))
-            total_chars += cls.__CHUNK_SIZE
+             selected.append((url, chunk))
+             total_chars += len(chunk)
 
         # transform into dict for output
         out: dict[str, list[str]] = {}
         for url, chunk in selected: # NOTE: selected contains pairs <url, selected_chunk>
-            if url not in out:
-                out[url] = [chunk]
-            else:
-                out[url].append(chunk)
+             if url not in out:
+                 out[url] = [chunk]
+             else:
+                 out[url].append(chunk)
         
         return out
