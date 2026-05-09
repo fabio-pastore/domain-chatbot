@@ -169,7 +169,8 @@ class ChunkSelector:
         
         for (url, chunk_text), c_vec in zip(all_candidates, chunk_vectors):
             score = cls.__calculate_cosine_similarity(query_vector, c_vec)
-            chunk_scores.append((url, chunk_text, score)) 
+            if score >= cls.__SIMILARITY_THRESHOLD: 
+                chunk_scores.append((url, chunk_text, score)) 
                 
         chunk_scores.sort(key=lambda x: x[2], reverse=True) 
         
