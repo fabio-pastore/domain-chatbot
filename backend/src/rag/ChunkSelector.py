@@ -10,13 +10,15 @@ class ChunkSelector:
     __CHUNK_SIZE: int = 1000 
     __MAX_OUTPUT_LENGTH: int = 8500 
     __SIMILARITY_THRESHOLD: float = 0.1 # keep this low, reranking will do the hard work
+    __TOP_K_CHUNKS: int = 20
     
     _reranker = None
 
     @staticmethod
     def __calculate_cosine_similarity(v1, v2) -> float:
         """
-        Calculates the cosine similarity between two numeric vectors.
+        Bi-Encoder: calculates the cosine similarity between two numeric vectors.
+        Extremely fast but not very accurate.
         Args:
             v1 (list[float]): The first vector.
             v2 (list[float]): The second vector.
@@ -103,6 +105,7 @@ class ChunkSelector:
     def __rerank_chunks(cls, query: str, candidates: list[tuple[str, str, float]]) -> list[tuple[str, str, float]]:
         """
         Re-ranks a list of candidate chunks using a Cross-Encoder.
+        Extremely accurate but slower model than the Bi-Encoder.
         
         Args:
             query (str): The user's query.
@@ -159,6 +162,10 @@ class ChunkSelector:
 
         chunk_scores: list[tuple[str, str, float]] = []
         
+        '''
+        Bi-Encoder to prelinarly rank the numerous chunks, followed by Cross-Encoder to accurately rerank the top k chunks.
+        '''
+        
         for (url, chunk_text), c_vec in zip(all_candidates, chunk_vectors):
             score = cls.__calculate_cosine_similarity(query_vector, c_vec)
             
@@ -167,7 +174,7 @@ class ChunkSelector:
                 
         chunk_scores.sort(key=lambda x: x[2], reverse=True) 
         
-        top_k_for_rerank = chunk_scores[:20]
+        top_k_for_rerank = chunk_scores[:cls.__TOP_K_CHUNKS]
         reranked_scores = cls.__rerank_chunks(query, top_k_for_rerank)
         
         out: dict[str, list[str]] = {}
