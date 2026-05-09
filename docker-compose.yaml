@@ -61,13 +61,13 @@ services:
       - "11434:11434"
     volumes:
       - ollama_llm_data:/root/.ollama
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+#    deploy:
+#      resources:
+#        reservations:
+#          devices:
+#            - driver: nvidia
+#              count: 1
+#              capabilities: [gpu]
 
   ollama-embed:
     image: ollama/ollama:latest
@@ -75,13 +75,13 @@ services:
       - "11435:11434" 
     volumes:
       - ollama_embed_data:/root/.ollama
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+#    deploy:
+#      resources:
+#        reservations:
+#          devices:
+#            - driver: nvidia
+#              count: 1
+#              capabilities: [gpu]
 
   ollama-init:
     image: alpine:latest
