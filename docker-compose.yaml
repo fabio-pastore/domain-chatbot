@@ -7,17 +7,25 @@ services:
       - "8001:8001"
     volumes:
       - ./backend:/app
+    env_file: .env
     environment:
       - PYTHONUNBUFFERED=1
       - OLLAMA_LLM_URL=http://ollama-llm:11434/api/generate
       - OLLAMA_LLM_MODEL=ministral-3:3b
       - OLLAMA_EMBEDDING_URL=http://ollama-embed:11434/api/embed
       - OLLAMA_EMBEDDING_MODEL=nomic-embed-text
+      - MARIADB_HOST=mariadb
+      - MARIADB_PORT=3306
+      - MARIADB_USER=${MARIADB_USER}
+      - MARIADB_PASSWORD=${MARIADB_PASSWORD}
+      - MARIADB_DATABASE=${MARIADB_DATABASE}
     depends_on:
       ollama-init:
         condition: service_completed_successfully
       searxng:
         condition: service_started
+      mariadb:
+        condition: service_healthy
 
   chatbot_frontend:
     build:
@@ -29,8 +37,29 @@ services:
       - ./frontend:/app
     environment:
       - PYTHONUNBUFFERED=1
+      - BACKEND_URL=http://chatbot_backend:8001
     depends_on:
       - chatbot_backend
+
+  mariadb:
+    image: mariadb:11
+    container_name: mariadb
+    ports:
+      - "3306:3306"
+    env_file: .env
+    environment:
+      - MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
+      - MARIADB_DATABASE=${MARIADB_DATABASE}
+      - MARIADB_USER=${MARIADB_USER}
+      - MARIADB_PASSWORD=${MARIADB_PASSWORD}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   searxng:
       image: searxng/searxng:latest
@@ -53,7 +82,7 @@ services:
   redis:
     image: redis:alpine
     container_name: redis
-    command: redis-server --save "" --appendonly no # RAM only for speed
+    command: redis-server --save "" --appendonly no
       
   ollama-llm:
     image: ollama/ollama:latest
@@ -91,20 +120,18 @@ services:
     command: >
       sh -c "
         apk add --no-cache curl;
-
         echo 'Waiting for Ollama LLM to start...';
         while ! curl -s http://ollama-llm:11434/api/tags > /dev/null; do sleep 2; done;
         echo 'Ollama LLM is up! Pulling ministral-3:3b (this will take a while)...';
         curl -s -X POST http://ollama-llm:11434/api/pull -d '{\"name\": \"ministral-3:3b\", \"stream\": false}';
-
         echo 'Waiting for Ollama Embed to start...';
         while ! curl -s http://ollama-embed:11434/api/tags > /dev/null; do sleep 2; done;
         echo 'Ollama Embed is up! Pulling nomic-embed-text (this will take a while)...';
         curl -s -X POST http://ollama-embed:11434/api/pull -d '{\"name\": \"nomic-embed-text\", \"stream\": false}';
-
         echo 'All models initialized successfully!';
       "
 
 volumes:
   ollama_llm_data:
   ollama_embed_data:
+  mariadb_data:

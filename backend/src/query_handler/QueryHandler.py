@@ -106,5 +106,11 @@ class QueryHandler:
         """
         return llm_responder.answer_user_query(query, query_context_data)
 
+    def stream_answer_query(self, session_id: str, query: str, query_context_data: str):
+        """
+        Streams an answer to a user query using the LLM responder.
+        """
+        return llm_responder.stream_user_query(query, query_context_data)
+
 query_handler = QueryHandler()
 

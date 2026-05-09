@@ -123,5 +123,12 @@ class LLMResponder(OllamaResponder):
         response = self._call_ollama(prompt)
         return response
 
+    def stream_user_query(self, query: str, query_context_data: str):
+        """
+        Generates a streaming answer to a user's query based on context data.
+        """
+        prompt = PromptBuilder.build_answer_user_query_prompt(query, query_context_data)
+        yield from self._stream_ollama(prompt)
+
 llm_responder = LLMResponder()
 

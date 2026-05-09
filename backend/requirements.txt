@@ -5,3 +5,5 @@ requests
 ddgs
 numpy
 regex
+mariadb
+jinja2

@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from src.query_handler.QueryHandler import query_handler
 from src.db_manager.ChatHistoryManager import chat_history_manager
@@ -9,6 +10,13 @@ from src.rag.TextEmbedder import TextEmbedder
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class ChatInput(BaseModel):
     """Input model for chat endpoint.
@@ -45,9 +53,17 @@ class ChatOutput(BaseModel):
     status: str = "success"
 
 
+class CreateSessionInput(BaseModel):
+    """Input for creating a new session."""
+    title: str = "New Chat"
+
+
+from fastapi.responses import StreamingResponse
+import json
+
 @app.post("/chat")
-def chat(message: ChatInput) -> ChatOutput:
-    """Processes a user's chat query and returns a response.
+def chat(message: ChatInput):
+    """Processes a user's chat query and streams the response via SSE.
     
     Checks if the query is valid, retrieves relevant URLs, extracts content, selects useful chunks 
     and generates an answer with extracted chunks as context.
@@ -56,84 +72,95 @@ def chat(message: ChatInput) -> ChatOutput:
         message: Input containing session_id and query.
 
     Returns:
-        ChatOutput: Response containing query processing details and answer.
+        StreamingResponse: SSE stream containing query processing details and answer tokens.
     """
-    intent_result = query_handler.process_query(message.session_id, message.query)
+    def event_stream():
+        try:
+            yield f"data: {json.dumps({'phase': 'status', 'content': 'Checking guardrails and intent...'})}\n\n"
+            intent_result = query_handler.process_query(message.session_id, message.query)
 
-    if not intent_result.is_allowed:
-        rejection_msg = "Your query appears to be meaningless or invalid. Please ask a clear, answerable question."
+            if not intent_result.is_allowed:
+                rejection_msg = "Your query appears to be meaningless or invalid. Please ask a clear, answerable question."
+                chat_history_manager.add_message(message.session_id, "user", message.query)
+                chat_history_manager.add_message(message.session_id, "assistant", rejection_msg)
+                yield f"data: {json.dumps({'phase': 'complete', 'content': rejection_msg, 'status': 'rejected'})}\n\n"
+                return
 
-        chat_history_manager.add_message(message.session_id, "user", message.query)
-        chat_history_manager.add_message(message.session_id, "assistant", rejection_msg)
-        return ChatOutput(
-            info=rejection_msg,
-            standalone_query=intent_result.standalone_query,
-            status="rejected",
-        )
+            yield f"data: {json.dumps({'phase': 'status', 'content': f'Searching... Found {len(intent_result.relevant_urls)} sources.'})}\n\n"
+            
+            extracted_contents = []
+            parsed_content = []
+            
+            for url in intent_result.relevant_urls:
+                if MWPClient.is_domain_supported(url):
+                    yield f"data: {json.dumps({'phase': 'status', 'content': f'Reading websites...'})}\n\n"
+                    parsed_text = MWPClient.parse_url(url)
+                    if parsed_text:
+                        parsed_content.append((url, parsed_text))
+                        extracted_contents.append({"url": url, "content_preview": parsed_text[:300] + "..."})
 
-    extracted_contents: list[dict[str, str]] = []
+            yield f"data: {json.dumps({'phase': 'status', 'content': 'Reading and selecting relevant chunks...'})}\n\n"
+            rag_data = ChunkSelector.select_relevant_chunks(
+                query=intent_result.standalone_query, parsed_pages=parsed_content
+            )
+            relevant_chunks = []
+            for chunks in rag_data.values():
+                relevant_chunks.extend(chunks)
+            
+            query_context_data = ContextGenerator.generate_llm_context(extracted_chunks=relevant_chunks)
+            
+            yield f"data: {json.dumps({'phase': 'status', 'content': 'Generating answer...'})}\n\n"
+            
+            full_answer = ""
+            for token in query_handler.stream_answer_query(message.session_id, intent_result.standalone_query, query_context_data):
+                full_answer += token
+                yield f"data: {json.dumps({'phase': 'token', 'content': token})}\n\n"
 
-    parsed_content: list[tuple[str, str]] = []  # a list of tuples containing pairs <url, parsed_text>
+            chat_history_manager.add_message(message.session_id, "user", message.query)
+            chat_history_manager.add_message(message.session_id, "assistant", full_answer)
 
-    for url in intent_result.relevant_urls:
-        if MWPClient.is_domain_supported(url):
-            parsed_text = MWPClient.parse_url(url)
-            if parsed_text:
-                parsed_content.append((url, parsed_text))
-                extracted_contents.append(
-                    {
-                        "url": url,
-                        "content_preview": parsed_text[:300]
-                        + "...",  # return a preview for testing
-                    }
-                )
+            yield f"data: {json.dumps({'phase': 'complete', 'content': '', 'status': 'success'})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'phase': 'error', 'content': str(e)})}\n\n"
+            
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
-    urls_found = len(intent_result.relevant_urls)
-    parsed_count = len(extracted_contents)
-
-    rag_data: dict[str, list[str]] = ChunkSelector.select_relevant_chunks(
-        query=intent_result.standalone_query, parsed_pages=parsed_content
-    )
-    relevant_chunks: list[str] = []
-
-    for chunks in rag_data.values():
-        relevant_chunks.extend(chunks)
-
-    reference_urls: set[str] = set(rag_data.keys())
-
-    # we will later pass this to LLM
-    query_context_data: str = ContextGenerator.generate_llm_context(
-        extracted_chunks=relevant_chunks
-    )
-
-    llm_answer: str = query_handler.answer_query(message.session_id, intent_result.standalone_query, query_context_data)
-
-    success_msg = f"Query accepted! Rewritten as: '{intent_result.standalone_query}'. Found {urls_found} URLs, parsed {parsed_count} via MWP."
-
-    chat_history_manager.add_message(message.session_id, "user", message.query)
-    chat_history_manager.add_message(message.session_id, "assistant", success_msg)
-
-    return ChatOutput(
-        info=success_msg,
-        query_answer=llm_answer,
-        standalone_query=intent_result.standalone_query,
-        selected_domain=intent_result.selected_domain,
-        relevant_urls=intent_result.relevant_urls,
-        extracted_content=extracted_contents,
-        reference_urls=reference_urls,
-        relevant_chunks=relevant_chunks,
-        status="allowed",
-    )
+@app.get("/sessions")
+def list_sessions():
+    """List all chat sessions."""
+    return chat_history_manager.get_all_sessions()
 
 
-# to know if the server is alive or dead
+@app.post("/sessions")
+def create_session(body: CreateSessionInput = None):
+    """Create a new chat session."""
+    if body is None:
+        body = CreateSessionInput()
+    session_id = chat_history_manager.create_session(title=body.title)
+    return {"session_id": session_id, "title": body.title}
+
+
+@app.get("/sessions/{session_id}/messages")
+def get_session_messages(session_id: str):
+    """Get all messages for a session."""
+    if not chat_history_manager.session_exists(session_id):
+        raise HTTPException(status_code=404, detail="Session not found")
+    return chat_history_manager.get_history(session_id)
+
+
+@app.delete("/sessions/{session_id}")
+def delete_session(session_id: str):
+    """Delete a session and all its messages."""
+    deleted = chat_history_manager.delete_session(session_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {"status": "deleted"}
+
 @app.get("/health")
 def health():
-
     """Checks the health status of the server.
 
     Returns:
         dict: A dictionary indicating the server's health status.
     """
     return {"status": "healthy"}
-

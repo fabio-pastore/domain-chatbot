@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sapienza AI | Domain Chatbot</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        sapienza: {
+                            DEFAULT: '#822433',
+                            light: '#a83244',
+                            dark: '#5c1722',
+                            bg: '#fdfbfb'
+                        }
+                    },
+                    animation: {
+                        'fade-in-up': 'fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'msg-appear': 'msgAppear 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        msgAppear: {
+                            '0%': { opacity: '0', transform: 'translateY(10px) scale(0.98)' },
+                            '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Modern scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        ::selection { background: #822433; color: white; }
+
+        /* Typing dots */
+        .typing-dot {
+            display: inline-block;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background-color: #822433;
+            animation: typingBounce 1.4s infinite ease-in-out both;
+        }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes typingBounce {
+            0%, 80%, 100% { transform: scale(0.5); opacity: 0.3; }
+            40% { transform: scale(1.2); opacity: 1; }
+        }
+
+        /* Glass effects */
+        .glass {
+            background: rgba(253, 251, 251, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0,0,0,0.03);
+        }
+
+        .input-glass {
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0,0,0,0.03);
+            backdrop-filter: blur(8px);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .input-glass:focus-within {
+            box-shadow: 0 8px 30px -4px rgba(130, 36, 51, 0.12), 0 0 0 1px #822433;
+            transform: translateY(-2px);
+        }
+
+        /* Message bubbles */
+        .msg-user {
+            background: linear-gradient(135deg, #822433 0%, #a83244 100%);
+            box-shadow: 0 4px 15px rgba(130, 36, 51, 0.15);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .msg-assistant {
+            background: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            border: 1px solid rgba(0,0,0,0.04);
+            border-bottom-left-radius: 4px;
+        }
+
+        /* Prose styles */
+        .prose-chat p { margin-bottom: 0.85em; line-height: 1.6; }
+        .prose-chat p:last-child { margin-bottom: 0; }
+        .prose-chat strong { color: #111827; font-weight: 600; }
+        .prose-chat ul, .prose-chat ol { margin-left: 1.25em; margin-bottom: 0.85em; }
+        .prose-chat ul { list-style-type: disc; }
+        .prose-chat ol { list-style-type: decimal; }
+        .prose-chat li { margin-bottom: 0.3em; }
+        .prose-chat li::marker { color: #822433; }
+        .prose-chat a { color: #822433; font-weight: 500; text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+        .prose-chat a:hover { border-bottom-color: #822433; }
+        .prose-chat code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.85em; background: #f1f5f9; padding: 0.2em 0.4em; border-radius: 0.375rem; color: #822433; font-weight: 500; }
+        .prose-chat pre { background: #0f172a; color: #f8fafc; padding: 1.25rem; border-radius: 0.75rem; overflow-x: auto; margin-bottom: 0.85em; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+        .prose-chat pre code { background: transparent; padding: 0; color: inherit; font-size: 0.85em; font-weight: 400; }
+        .prose-chat h1, .prose-chat h2, .prose-chat h3 { font-weight: 600; color: #111827; margin-top: 1.5em; margin-bottom: 0.5em; letter-spacing: -0.01em; }
+        .prose-chat blockquote { border-left: 3px solid #822433; background: linear-gradient(90deg, rgba(130,36,51,0.03) 0%, transparent 100%); padding: 0.75rem 1rem; border-radius: 0 0.5rem 0.5rem 0; margin-bottom: 0.85em; color: #475569; font-style: italic; }
+        .prose-chat table { width: 100%; margin-bottom: 0.85em; border-collapse: separate; border-spacing: 0; border-radius: 0.5rem; overflow: hidden; border: 1px solid #e2e8f0; }
+        .prose-chat th, .prose-chat td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        .prose-chat th { background: #f8fafc; font-weight: 600; color: #1e293b; }
+        .prose-chat tr:last-child td { border-bottom: none; }
+
+        /* Sidebar items */
+        .session-item { position: relative; overflow: hidden; }
+        .session-item::before {
+            content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 3px; background: #822433;
+            transform: scaleY(0); transition: transform 0.2s ease; transform-origin: top; border-radius: 0 2px 2px 0;
+        }
+        .session-item.active { background: #fdfbfb; border-color: #f1f5f9; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .session-item.active::before { transform: scaleY(1); }
+        
+        .session-item .delete-btn { opacity: 0; transform: scale(0.8); transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+        .session-item:hover .delete-btn { opacity: 1; transform: scale(1); }
+    </style>
+</head>
+
+<body class="h-full bg-sapienza-bg text-gray-800 flex overflow-hidden antialiased">
+    
+    <!-- Mobile overlay -->
+    <div id="mobile-overlay" class="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-20 hidden transition-opacity opacity-0"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-[280px] bg-white border-r border-gray-100 flex flex-col shrink-0 transition-transform duration-300 z-30 shadow-[4px_0_24px_rgba(0,0,0,0.02)] absolute inset-y-0 left-0 -translate-x-full md:relative md:translate-x-0 h-full">
+        <!-- Brand -->
+        <div class="h-16 flex items-center px-6 border-b border-gray-50 shrink-0">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-sapienza to-sapienza-light flex items-center justify-center shadow-lg shadow-sapienza/20 mr-3">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+            </div>
+            <span class="text-lg font-bold tracking-wide text-gray-900">Sapienza AI</span>
+            <!-- Close sidebar btn (mobile) -->
+            <button id="btn-close-sidebar" class="md:hidden ml-auto p-2 rounded-md text-gray-400 hover:bg-gray-100">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <!-- New Chat Action -->
+        <div class="p-4 shrink-0">
+            <button id="btn-new-chat" class="w-full relative overflow-hidden group rounded-xl bg-white border border-gray-200 hover:border-sapienza/50 transition-all duration-300 shadow-sm hover:shadow-md hover:shadow-sapienza/10 px-4 py-3 flex items-center justify-center gap-2">
+                <div class="absolute inset-0 bg-sapienza opacity-0 group-hover:opacity-[0.03] transition-opacity"></div>
+                <svg class="w-5 h-5 text-sapienza group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                </svg>
+                <span class="font-semibold text-gray-700 group-hover:text-sapienza transition-colors text-sm">New Conversation</span>
+            </button>
+        </div>
+
+        <!-- History -->
+        <div class="flex-1 overflow-y-auto px-3 pb-4">
+            <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3 px-3 mt-2">Recent Chats</div>
+            <nav id="session-list" class="space-y-1">
+                <!-- sessions injected by JS -->
+            </nav>
+        </div>
+
+        <!-- Footer -->
+        <div class="p-4 bg-gray-50/80 border-t border-gray-100 flex items-center justify-center gap-2 text-[11px] font-semibold text-gray-500 uppercase tracking-wider shrink-0">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sapienza opacity-60"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-sapienza"></span>
+            </span>
+            RAG System Online
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="flex-1 flex flex-col min-w-0 bg-[#fdfbfb] relative">
+        
+        <!-- Header -->
+        <header class="h-16 glass flex items-center justify-between px-4 sm:px-6 shrink-0 z-10 sticky top-0">
+            <div class="flex items-center gap-3">
+                <button id="btn-toggle-sidebar" class="md:hidden p-2 -ml-2 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+                <h2 id="chat-title" class="text-sm font-semibold text-gray-600 bg-white px-3.5 py-1.5 rounded-full border border-gray-200 shadow-sm truncate max-w-[200px] sm:max-w-xs transition-all">New Session</h2>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <a href="#" class="text-xs font-semibold text-sapienza bg-sapienza/10 px-2.5 py-1.5 rounded-md hover:bg-sapienza/15 transition-colors hidden sm:block">Knowledge Base</a>
+                <div class="w-8 h-8 rounded-full bg-gray-200 border-2 border-white shadow-sm overflow-hidden">
+                    <!-- User avatar placeholder -->
+                    <svg class="w-full h-full text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                </div>
+            </div>
+        </header>
+
+        <!-- Messages Area -->
+        <div id="messages-container" class="flex-1 overflow-y-auto scroll-smooth">
+            <div id="messages" class="max-w-4xl mx-auto w-full px-4 sm:px-6 py-8 space-y-8">
+                
+                <!-- Welcome State -->
+                <div id="welcome" class="flex flex-col items-center justify-center min-h-[60vh] text-center px-4 animate-fade-in-up">
+                    <div class="relative w-24 h-24 mb-8">
+                        <div class="absolute inset-0 bg-sapienza rounded-full opacity-10 animate-pulse-slow blur-xl"></div>
+                        <div class="relative w-full h-full bg-white rounded-[2rem] shadow-xl shadow-sapienza/5 border border-gray-100 flex items-center justify-center transform rotate-3 hover:rotate-0 transition-transform duration-500">
+                            <svg class="w-10 h-10 text-sapienza" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <h1 class="text-3xl font-bold text-gray-900 mb-3 tracking-tight">How can I help you today?</h1>
+                    <p class="text-gray-500 max-w-lg text-[15px] leading-relaxed">
+                        Access the university knowledge base. Ask questions, explore documents, and get intelligent answers powered by specialized RAG architecture.
+                    </p>
+                    
+                    <div class="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl w-full">
+                        <button class="suggest-btn text-left p-4 rounded-2xl border border-gray-200 bg-white hover:border-sapienza/40 hover:shadow-lg hover:shadow-sapienza/5 transition-all group relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-1 h-full bg-sapienza opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <div class="text-sm font-bold text-gray-800 mb-1 group-hover:text-sapienza transition-colors">Admissions Guide</div>
+                            <div class="text-[13px] text-gray-500 font-medium">What are the requirements for international students?</div>
+                        </button>
+                        <button class="suggest-btn text-left p-4 rounded-2xl border border-gray-200 bg-white hover:border-sapienza/40 hover:shadow-lg hover:shadow-sapienza/5 transition-all group relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-1 h-full bg-sapienza opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <div class="text-sm font-bold text-gray-800 mb-1 group-hover:text-sapienza transition-colors">Course Catalog</div>
+                            <div class="text-[13px] text-gray-500 font-medium">Find master's degrees in computer science.</div>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+            
+            <!-- Padding for scroll -->
+            <div class="h-40"></div>
+        </div>
+
+        <!-- Input Area (Floating) -->
+        <div class="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-[#fdfbfb] via-[#fdfbfb] to-transparent pt-12 pointer-events-none">
+            <div class="max-w-4xl mx-auto relative pointer-events-auto">
+                <form id="chat-form" class="relative">
+                    <div class="input-glass rounded-3xl flex items-end p-2 sm:p-3 relative z-10">
+                        <textarea id="chat-input"
+                            rows="1"
+                            placeholder="Message Sapienza AI..."
+                            class="flex-1 bg-transparent resize-none px-4 py-3 text-[15px] outline-none max-h-48 text-gray-800 placeholder-gray-400 font-medium leading-relaxed"
+                            style="field-sizing: content;"></textarea>
+                        
+                        <div class="shrink-0 ml-2 flex items-center mb-1 mr-1">
+                            <button id="btn-send" type="submit"
+                                class="w-11 h-11 rounded-2xl bg-sapienza hover:bg-sapienza-light text-white flex items-center justify-center disabled:opacity-50 disabled:hover:bg-sapienza transition-all shadow-md shadow-sapienza/20 group"
+                                disabled>
+                                <svg class="w-5 h-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="text-center mt-3 mb-1">
+                        <span class="text-[11px] text-gray-400 font-semibold tracking-wide">AI-generated content. Please verify important information independently.</span>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- JS -->
+    <script>
+    (function() {
+        "use strict";
+
+        let currentSessionId = null;
+        let isLoading = false;
+
+        const sessionList      = document.getElementById("session-list");
+        const messagesDiv      = document.getElementById("messages");
+        const welcomeDiv       = document.getElementById("welcome");
+        const chatForm         = document.getElementById("chat-form");
+        const chatInput        = document.getElementById("chat-input");
+        const btnSend          = document.getElementById("btn-send");
+        const btnNewChat       = document.getElementById("btn-new-chat");
+        const chatTitle        = document.getElementById("chat-title");
+        const container        = document.getElementById("messages-container");
+        const btnToggleSidebar = document.getElementById("btn-toggle-sidebar");
+        const btnCloseSidebar  = document.getElementById("btn-close-sidebar");
+        const sidebar          = document.getElementById("sidebar");
+        const mobileOverlay    = document.getElementById("mobile-overlay");
+        const suggestBtns      = document.querySelectorAll(".suggest-btn");
+
+        marked.setOptions({ breaks: true, gfm: true });
+
+        function escapeHtml(text) {
+            const div = document.createElement("div");
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function scrollToBottom() {
+            container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+        }
+
+        // --- Sidebar ---
+        function toggleSidebar() {
+            const isClosed = sidebar.classList.contains("-translate-x-full");
+            if (isClosed) {
+                sidebar.classList.remove("-translate-x-full");
+                mobileOverlay.classList.remove("hidden");
+                setTimeout(() => mobileOverlay.classList.remove("opacity-0"), 10);
+            } else {
+                sidebar.classList.add("-translate-x-full");
+                mobileOverlay.classList.add("opacity-0");
+                setTimeout(() => mobileOverlay.classList.add("hidden"), 300);
+            }
+        }
+
+        btnToggleSidebar.addEventListener("click", toggleSidebar);
+        btnCloseSidebar.addEventListener("click", toggleSidebar);
+        mobileOverlay.addEventListener("click", toggleSidebar);
+
+        // --- API & Sessions ---
+        async function loadSessions() {
+            try {
+                const resp = await fetch("/api/sessions");
+                const sessions = await resp.json();
+                renderSessions(sessions);
+            } catch (e) {
+                console.error("Failed to load sessions:", e);
+            }
+        }
+
+        function renderSessions(sessions) {
+            sessionList.innerHTML = "";
+            if (!sessions || !sessions.length) {
+                sessionList.innerHTML = '<p class="text-[12px] font-medium text-gray-400 px-3 pt-2">No conversations yet.</p>';
+                return;
+            }
+            sessions.forEach(s => {
+                const div = document.createElement("div");
+                const isActive = s.session_id === currentSessionId;
+                
+                let baseClasses = "session-item group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all border border-transparent";
+                if (isActive) {
+                    div.className = `${baseClasses} active text-sapienza`;
+                } else {
+                    div.className = `${baseClasses} text-gray-600 hover:bg-gray-50`;
+                }
+
+                div.innerHTML = `
+                    <svg class="w-4 h-4 opacity-70 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                    </svg>
+                    <span class="flex-1 truncate text-[13px] font-semibold tracking-wide" title="${escapeHtml(s.title)}">${escapeHtml(s.title)}</span>
+                    <button class="delete-btn p-1.5 rounded-lg hover:bg-red-50 hover:text-red-600 text-gray-400 shrink-0" title="Delete">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                    </button>`;
+
+                div.querySelector("span").addEventListener("click", () => switchSession(s.session_id));
+                div.querySelector("svg").addEventListener("click", () => switchSession(s.session_id));
+
+                div.querySelector(".delete-btn").addEventListener("click", async (e) => {
+                    e.stopPropagation();
+                    if (!confirm("Delete this conversation?")) return;
+                    await fetch(`/api/sessions/${s.session_id}`, { method: "DELETE" });
+                    if (currentSessionId === s.session_id) {
+                        currentSessionId = null;
+                        clearMessages();
+                    }
+                    loadSessions();
+                });
+
+                sessionList.appendChild(div);
+            });
+        }
+
+        function clearMessages() {
+            messagesDiv.innerHTML = "";
+            messagesDiv.appendChild(welcomeDiv);
+            welcomeDiv.classList.remove("hidden");
+            chatTitle.textContent = "New Session";
+            chatTitle.classList.remove("text-sapienza");
+        }
+
+        function createAssistantMessageWrapper() {
+            welcomeDiv.classList.add("hidden");
+            const wrapper = document.createElement("div");
+            wrapper.className = "flex gap-4 justify-start max-w-4xl mx-auto animate-msg-appear w-full";
+            
+            wrapper.innerHTML = `
+                <div class="w-9 h-9 rounded-xl bg-sapienza flex items-center justify-center shrink-0 mt-1 shadow-md shadow-sapienza/20">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"/>
+                    </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="status-indicator mb-3 inline-flex items-center gap-2 bg-sapienza/5 border border-sapienza/10 px-3.5 py-1.5 rounded-full shadow-sm">
+                        <div class="flex gap-1 items-center justify-center">
+                            <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
+                        </div>
+                        <span class="status-text ml-1 text-[11px] font-bold text-sapienza uppercase tracking-wide">Thinking...</span>
+                    </div>
+                    <div class="message-content msg-assistant p-5 sm:p-6 rounded-2xl rounded-tl-sm text-gray-800 text-[15px] leading-relaxed prose-chat shadow-sm hidden"></div>
+                </div>`;
+            messagesDiv.appendChild(wrapper);
+            scrollToBottom();
+            return wrapper;
+        }
+
+        function appendMessage(role, content) {
+            welcomeDiv.classList.add("hidden");
+
+            const wrapper = document.createElement("div");
+            wrapper.className = "flex gap-4 max-w-4xl mx-auto animate-msg-appear w-full " + (role === "user" ? "justify-end" : "justify-start");
+
+            if (role === "user") {
+                wrapper.innerHTML = `
+                    <div class="max-w-[80%] msg-user px-5 py-4 rounded-2xl rounded-tr-sm text-[15px] leading-relaxed whitespace-pre-wrap font-medium shadow-md shadow-sapienza/10">${escapeHtml(content)}</div>`;
+            } else {
+                const html = marked.parse(content);
+                wrapper.innerHTML = `
+                    <div class="w-9 h-9 rounded-xl bg-sapienza flex items-center justify-center shrink-0 mt-1 shadow-md shadow-sapienza/20">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="msg-assistant p-5 sm:p-6 rounded-2xl rounded-tl-sm text-gray-800 text-[15px] leading-relaxed prose-chat shadow-sm">${html}</div>
+                    </div>`;
+            }
+
+            messagesDiv.appendChild(wrapper);
+            scrollToBottom();
+        }
+
+        async function switchSession(sessionId) {
+            currentSessionId = sessionId;
+            clearMessages();
+            chatTitle.textContent = "Loading...";
+            
+            if (window.innerWidth < 768) {
+                toggleSidebar(); // close on mobile
+            }
+
+            try {
+                const resp = await fetch(`/api/sessions/${sessionId}/messages`);
+                const messages = await resp.json();
+                if (messages.error) {
+                    chatTitle.textContent = "Error";
+                    return;
+                }
+                messages.forEach(m => appendMessage(m.role, m.content));
+
+            } catch (e) {
+                console.error("Failed to load messages:", e);
+            }
+
+            const sessionsResp = await fetch("/api/sessions");
+            const sessions = await sessionsResp.json();
+            const current = sessions.find(s => s.session_id === sessionId);
+            if (current) {
+                chatTitle.textContent = current.title;
+                chatTitle.classList.add("text-sapienza");
+            }
+            renderSessions(sessions);
+        }
+
+        async function sendMessage(text) {
+            if (!text.trim() || isLoading) return;
+
+            if (!currentSessionId) {
+                try {
+                    const resp = await fetch("/api/sessions", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ title: text.substring(0, 30) + (text.length > 30 ? "..." : "") }),
+                    });
+                    const data = await resp.json();
+                    currentSessionId = data.session_id;
+                } catch (e) {
+                    console.error("Failed to create session:", e);
+                    return;
+                }
+            }
+
+            appendMessage("user", text);
+            chatInput.value = "";
+            chatInput.style.height = "auto";
+            btnSend.disabled = true;
+            isLoading = true;
+
+            const wrapper = createAssistantMessageWrapper();
+            const statusDiv = wrapper.querySelector('.status-indicator');
+            const statusText = wrapper.querySelector('.status-text');
+            const contentDiv = wrapper.querySelector('.message-content');
+            let fullAnswer = "";
+
+            try {
+                const resp = await fetch("/api/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ session_id: currentSessionId, query: text }),
+                });
+                
+                if (!resp.ok) throw new Error("HTTP error " + resp.status);
+
+                const reader = resp.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = "";
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    buffer += decoder.decode(value, { stream: true });
+                    let events = buffer.split("\n\n");
+                    buffer = events.pop();
+                    
+                    for (const event of events) {
+                        if (event.startsWith("data: ")) {
+                            try {
+                                const data = JSON.parse(event.substring(6));
+                                if (data.phase === "status") {
+                                    statusText.textContent = data.content;
+                                } else if (data.phase === "token") {
+                                    if (!statusDiv.classList.contains('hidden')) {
+                                        statusDiv.classList.add('hidden');
+                                        contentDiv.classList.remove('hidden');
+                                    }
+                                    fullAnswer += data.content;
+                                    contentDiv.innerHTML = marked.parse(fullAnswer);
+                                    scrollToBottom();
+                                } else if (data.phase === "complete") {
+                                    statusDiv.classList.add('hidden');
+                                    contentDiv.classList.remove('hidden');
+                                    if (data.content && !fullAnswer) {
+                                        contentDiv.innerHTML = marked.parse(data.content);
+                                    }
+                                    scrollToBottom();
+                                } else if (data.phase === "error") {
+                                    statusText.textContent = "Error: " + data.content;
+                                    statusText.classList.add("text-red-600");
+                                    statusDiv.querySelector('.flex').style.display = 'none'; 
+                                }
+                            } catch (e) {
+                                console.error("Error parsing SSE JSON:", e, event);
+                            }
+                        }
+                    }
+                }
+
+            } catch (e) {
+                statusDiv.classList.add('hidden');
+                contentDiv.classList.remove('hidden');
+                contentDiv.innerHTML = "<p class='text-red-600 font-medium'>An error occurred while processing your request. Please try again.</p>";
+                console.error("Chat error:", e);
+            }
+
+            isLoading = false;
+            updateSendButton();
+            loadSessions();
+            
+            if (chatTitle.textContent === "New Session" || chatTitle.textContent === "Loading...") {
+                chatTitle.textContent = "Active Session";
+                chatTitle.classList.add("text-sapienza");
+            }
+        }
+
+        // --- Inputs ---
+        function updateSendButton() {
+            btnSend.disabled = !chatInput.value.trim() || isLoading;
+        }
+
+        chatInput.addEventListener("input", () => {
+            updateSendButton();
+        });
+
+        chatInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                if (!btnSend.disabled) sendMessage(chatInput.value);
+            }
+        });
+
+        chatForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            sendMessage(chatInput.value);
+        });
+
+        btnNewChat.addEventListener("click", () => {
+            currentSessionId = null;
+            clearMessages();
+            loadSessions();
+            chatInput.focus();
+            if (window.innerWidth < 768) toggleSidebar();
+        });
+
+        // Suggestion buttons
+        suggestBtns.forEach(btn => {
+            btn.addEventListener("click", () => {
+                const text = btn.querySelector('.text-\\[13px\\]').textContent;
+                sendMessage(text);
+            });
+        });
+
+        // Init
+        loadSessions();
+        chatInput.focus();
+
+    })();
+    </script>
+</body>
+</html>

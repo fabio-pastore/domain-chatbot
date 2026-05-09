@@ -45,3 +45,31 @@ class OllamaResponder(ABC):
         except requests.exceptions.RequestException as e:
             print(f"Error connecting to Ollama: {e}")
             return ""
+
+    def _stream_ollama(self, prompt: str):
+        """
+        Calls the Ollama service with the given prompt and yields the response tokens.
+
+        Args:
+            prompt (str): The input prompt to send to the Ollama service.
+
+        Yields:
+            str: Tokens from the Ollama service.
+        """
+        payload = {
+            "model": self.ollama_model,
+            "prompt": prompt,
+            "stream": True
+        }
+        
+        try:
+            with requests.post(self.ollama_url, json=payload, stream=True, timeout=120) as response:
+                response.raise_for_status()
+                for line in response.iter_lines():
+                    if line:
+                        import json
+                        data = json.loads(line)
+                        yield data.get("response", "")
+        except requests.exceptions.RequestException as e:
+            print(f"Error connecting to Ollama: {e}")
+            yield ""
