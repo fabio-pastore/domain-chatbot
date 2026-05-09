@@ -5,3 +5,5 @@ requests
 ddgs
 numpy
 regex
+sentence-transformers
+#torch      do we need it?
