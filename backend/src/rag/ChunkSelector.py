@@ -130,8 +130,9 @@ class ChunkSelector:
         # Combine original data with new scores
         reranked_candidates = []
         for i, score in enumerate(scores):
-            url, chunk_text, _ = candidates[i]
-            reranked_candidates.append((url, chunk_text, float(score)))
+            if score >= cls.__SIMILARITY_THRESHOLD: 
+                url, chunk_text, _ = candidates[i]
+                reranked_candidates.append((url, chunk_text, float(score)))
             
         reranked_candidates.sort(key=lambda x: x[2], reverse=True)
         return reranked_candidates
@@ -168,9 +169,7 @@ class ChunkSelector:
         
         for (url, chunk_text), c_vec in zip(all_candidates, chunk_vectors):
             score = cls.__calculate_cosine_similarity(query_vector, c_vec)
-            
-            if score >= cls.__SIMILARITY_THRESHOLD: 
-                chunk_scores.append((url, chunk_text, score)) 
+            chunk_scores.append((url, chunk_text, score)) 
                 
         chunk_scores.sort(key=lambda x: x[2], reverse=True) 
         
