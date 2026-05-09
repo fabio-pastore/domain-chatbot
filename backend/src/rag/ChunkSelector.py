@@ -12,11 +12,15 @@ class ChunkSelector:
     __MAX_OUTPUT_LENGTH: int = 8500 
     __CHUNK_OVERLAP: int = 150
     __SIMILARITY_THRESHOLD: float = 0.1 # keep this low, reranking will do the hard work
+    __TOP_K_CHUNKS: int = 20
+    
+    _reranker = None
 
     @staticmethod
     def __calculate_cosine_similarity(v1, v2) -> float:
         """
-        Calculates the cosine similarity between two numeric vectors.
+        Bi-Encoder: calculates the cosine similarity between two numeric vectors.
+        Extremely fast but not very accurate.
         Args:
             v1 (list[float]): The first vector.
             v2 (list[float]): The second vector.
@@ -62,8 +66,8 @@ class ChunkSelector:
     @classmethod
     def __rerank_chunks(cls, query: str, candidates: list[tuple[str, str, float]]) -> list[tuple[str, str, float]]:
         """
-        Re-ranks a list of candidate chunks. 
-        In production, replace the dummy logic with a Cross-Encoder.
+        Re-ranks a list of candidate chunks using a Cross-Encoder.
+        Extremely accurate but slower model than the Bi-Encoder.
         
         Args:
             query (str): The user's query.
@@ -72,16 +76,29 @@ class ChunkSelector:
         Returns:
             A globally sorted list of re-ranked candidates.
         """
-        reranked_candidates = []
-        
-        for url, chunk_text, cos_score in candidates:
-            keyword_overlap = sum(1 for word in query.lower().split() if word in chunk_text.lower())
-            new_score = cos_score + (keyword_overlap * 0.05) 
+        if not candidates:
+            return []
             
-            reranked_candidates.append((url, chunk_text, new_score))
+        if cls._reranker is None:
+            from sentence_transformers import CrossEncoder
+            cls._reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2') #lazy loading
+            
+        # Prepare pairs for the CrossEncoder
+        pairs = [[query, chunk_text] for _, chunk_text, _ in candidates]
+        
+        # Predict relevance scores
+        scores = cls._reranker.predict(pairs)
+        
+        # Combine original data with new scores
+        reranked_candidates = []
+        for i, score in enumerate(scores):
+            if score >= cls.__SIMILARITY_THRESHOLD: 
+                url, chunk_text, _ = candidates[i]
+                reranked_candidates.append((url, chunk_text, float(score)))
             
         reranked_candidates.sort(key=lambda x: x[2], reverse=True)
         return reranked_candidates
+
     
     @classmethod
     def select_relevant_chunks(cls, query: str, parsed_pages: list[tuple[str, str]]) -> dict[str, list[str]]:
@@ -108,15 +125,18 @@ class ChunkSelector:
 
         chunk_scores: list[tuple[str, str, float]] = []
         
+        '''
+        Bi-Encoder to prelinarly rank the numerous chunks, followed by Cross-Encoder to accurately rerank the top k chunks.
+        '''
+        
         for (url, chunk_text), c_vec in zip(all_candidates, chunk_vectors):
             score = cls.__calculate_cosine_similarity(query_vector, c_vec)
-            
             if score >= cls.__SIMILARITY_THRESHOLD: 
                 chunk_scores.append((url, chunk_text, score)) 
                 
         chunk_scores.sort(key=lambda x: x[2], reverse=True) 
         
-        top_k_for_rerank = chunk_scores[:20]
+        top_k_for_rerank = chunk_scores[:cls.__TOP_K_CHUNKS]
         reranked_scores = cls.__rerank_chunks(query, top_k_for_rerank)
         
         out: dict[str, list[str]] = {}
