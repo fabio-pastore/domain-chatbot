@@ -117,10 +117,12 @@ class PromptBuilder:
 
                 <rules>
                 1. STRICT GROUNDING: You must ONLY use facts explicitly mentioned in the <reference_texts>. If the text mentions a "trilogy" but does not name the movies, DO NOT name them. NEVER use outside knowledge.
-                2. DIRECT ANSWER: NEVER use meta-language. Do NOT say "Nel testo fornito", "Secondo il testo", "Based on the text", or "The text mentions". Answer the question directly as if you are stating a fact.
+                2. NO META-TALK: NEVER reveal your sources. Do NOT use phrases like "according to the provided text" or "as per the reference texts" (e.g. if input language is italian, you must NOT write ANYTHING related to "testi forniti" or "riferimenti forniti" or "dati forniti")
+                   nor "the provided information states." Speak as if you inherently KNOW the facts. If you need, you MAY say "according to sources" (or "basandomi sulle fonti", "come riportato dalle fonti" in italian).  
                 3. PARTIAL ANSWERS: If the exact answer isn't fully available but some relevant facts are, state those facts directly.
                 4. INSUFFICIENT INFO: If the <reference_texts> do not contain any information to answer the question, output exactly this string in the language of the Question (e.g. for Italian: "Mi dispiace, ma non ho abbastanza informazioni per rispondere a questa domanda.") and nothing else.
-                5. LANGUAGE: Your answer MUST be in the exact same language as the Question.
+                5. RESPONSE FORMAT: Do not output bare facts; briefly rephrase the core of the question to make the answer self-contained.
+                6. LANGUAGE: Your answer MUST be in the exact same language as the Question.
                 </rules>
 
                 <examples>

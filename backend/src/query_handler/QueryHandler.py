@@ -38,7 +38,7 @@ class QueryHandler:
         """
         history_str = chat_history_manager.get_history_string(session_id)
         prev_domain: str = chat_history_manager.get_query_domain(session_id)
-        print("PREV DOMAIN:", prev_domain)
+        print(f"{{PREV DOMAIN: '{prev_domain}'}}")
         
         llm_response = llm_responder.check_guardrails(raw_query, history_str, prev_domain)
         target_domain = ""

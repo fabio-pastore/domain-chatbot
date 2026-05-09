@@ -8,8 +8,8 @@ class ChunkSelector:
     higher = more context but may include irrelevant info and dilute embedding vector
     '''
     __CHUNK_SIZE: int = 1000 
-    __MAX_OUTPUT_LENGTH: int = 12000 # 4 chunks, small models degrade significantly when the prompt gets long 
-    __SIMILARITY_THRESHOLD: float = 0.0 # 0.0 to 1.0 NOTE: do we really need this? model already discriminates on whether the provided data can be used to answer the question
+    __MAX_OUTPUT_LENGTH: int = 8500 
+    __SIMILARITY_THRESHOLD: float = 0.1 # keep this low, reranking will do the hard work
 
     @staticmethod
     def __calculate_cosine_similarity(v1, v2) -> float:
@@ -98,75 +98,76 @@ class ChunkSelector:
         return chunks
     
     @classmethod
+    def __rerank_chunks(cls, query: str, candidates: list[tuple[str, str, float]]) -> list[tuple[str, str, float]]:
+        """
+        Re-ranks a list of candidate chunks. 
+        In production, replace the dummy logic with a Cross-Encoder.
+        
+        Args:
+            query (str): The user's query.
+            candidates: A list of tuples (url, chunk_text, cosine_score).
+            
+        Returns:
+            A globally sorted list of re-ranked candidates.
+        """
+        reranked_candidates = []
+        
+        for url, chunk_text, cos_score in candidates:
+            keyword_overlap = sum(1 for word in query.lower().split() if word in chunk_text.lower())
+            new_score = cos_score + (keyword_overlap * 0.05) 
+            
+            reranked_candidates.append((url, chunk_text, new_score))
+            
+        reranked_candidates.sort(key=lambda x: x[2], reverse=True)
+        return reranked_candidates
+    
+    @classmethod
     def select_relevant_chunks(cls, query: str, parsed_pages: list[tuple[str, str]]) -> dict[str, list[str]]:
         """
-        Selects relevant chunks from parsed pages based on a query using cosine similarity.
-    
-        Args:
-            query (str): The query string.
-            parsed_pages (list[tuple[str, str]]): A list of tuples containing a URL and the corresponding text.
-
-        Returns:
-            dict[str, list[str]]: A dictionary mapping URLs to lists of relevant text chunks.
+        Selects relevant chunks globally based on cosine similarity, re-ranks them, 
+        and packs them into the maximum context window.
         """
-        query_vector: list[float] = TextEmbedder.embed_text(query) 
-        chunk_vecs: list[tuple[str, str, list[float]]] = []
-
+        query_vector: list[float] = TextEmbedder.embed_batch([query])
+        
+        all_candidates: list[tuple[str, str]] = []
+        
         for page in parsed_pages:
             url = page[0]
             text_lower = page[1].lower() 
             chunks = cls.__chunking(text_lower)
-            
             for c in chunks:
-                c_vec: list[float] = TextEmbedder.embed_text(c)
-                chunk_vecs.append((url, c, c_vec)) 
-
-        chunks_by_url: dict[str, list[tuple[str, float]]] = {}
-        
-        for url, chunk_text, c_vec in chunk_vecs:
-            score = cls.__calculate_cosine_similarity(query_vector, c_vec)
-            if score >= cls.__SIMILARITY_THRESHOLD: # filter out chunks that are too dissimilar to the query, mitigating issues caused lack of useful chunks
-                if url not in chunks_by_url:
-                    chunks_by_url[url] = []
-                chunks_by_url[url].append((chunk_text, score)) 
+                all_candidates.append((url, c))
                 
-        for url in chunks_by_url:
-            chunks_by_url[url].sort(key=lambda x: x[1], reverse=True)
+        if not all_candidates:
+            return {}
+
+        chunk_texts = [candidate[1] for candidate in all_candidates]
+        chunk_vectors: list[list[float]] = TextEmbedder.embed_batch(chunk_texts)
+
+        chunk_scores: list[tuple[str, str, float]] = []
         
-        selected = []
+        for (url, chunk_text), c_vec in zip(all_candidates, chunk_vectors):
+            score = cls.__calculate_cosine_similarity(query_vector, c_vec)
+            
+            if score >= cls.__SIMILARITY_THRESHOLD: 
+                chunk_scores.append((url, chunk_text, score)) 
+                
+        chunk_scores.sort(key=lambda x: x[2], reverse=True) 
+        
+        top_k_for_rerank = chunk_scores[:20]
+        reranked_scores = cls.__rerank_chunks(query, top_k_for_rerank)
+        
+        out: dict[str, list[str]] = {}
         total_chars = 0
         
-        '''TODO: Re-rank after retrieval: Cosine similarity alone is noisy. 
-        After fetching top-10, use a cross-encoder or simple keyword overlap score to re-rank and pick the final top-4.
-        '''
-        
-        # me when round is robin
-        urls_available = list(chunks_by_url.keys())
-        while urls_available and total_chars < cls.__MAX_OUTPUT_LENGTH:
-            urls_to_remove = []
-            for url in urls_available:
-                if total_chars >= cls.__MAX_OUTPUT_LENGTH:
-                    break
-                
-                chunk_text, score = chunks_by_url[url].pop(0)
-                
-                if total_chars + len(chunk_text) > cls.__MAX_OUTPUT_LENGTH:
-                    urls_to_remove.append(url)
-                    continue
-                
-                selected.append((url, chunk_text))
-                total_chars += len(chunk_text)
-                
-                if not chunks_by_url[url]:
-                    urls_to_remove.append(url)
-            for url in set(urls_to_remove):
-                if url in urls_available:
-                    urls_available.remove(url)
-        out: dict[str, list[str]] = {}
-        for url, chunk in selected: # NOTE: selected contains pairs <url, selected_chunk>
+        for url, chunk, _ in reranked_scores:
+             if total_chars + len(chunk) > cls.__MAX_OUTPUT_LENGTH:
+                 continue # if it doesn't fit try to keep looking for smaller chunks to include if possible
+
              if url not in out:
-                 out[url] = [chunk]
-             else:
-                 out[url].append(chunk)
+                 out[url] = []
+             out[url].append(chunk)
+             
+             total_chars += len(chunk)
         
         return out
