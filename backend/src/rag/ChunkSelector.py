@@ -11,7 +11,8 @@ class ChunkSelector:
     __CHUNK_SIZE: int = 1000 
     __MAX_OUTPUT_LENGTH: int = 8500 
     __CHUNK_OVERLAP: int = 150
-    __SIMILARITY_THRESHOLD: float = 0.1 # keep this low, reranking will do the hard work
+    __COSINE_SIMILARITY_THRESHOLD: float = 0.1 # keep this low, reranking will do the hard work
+    __CROSS_ENCODING_SIMILARITY_THRESHOLD: float = 0.3
     __TOP_K_CHUNKS: int = 20
     
     _reranker = None
@@ -80,8 +81,8 @@ class ChunkSelector:
             return []
             
         if cls._reranker is None:
-            from sentence_transformers import CrossEncoder
-            cls._reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2') #lazy loading
+            from sentence_transformers import CrossEncoder # type: ignore do not remove I don't want this VScode warning thank you
+            cls._reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2') # lazy loading
             
         # Prepare pairs for the CrossEncoder
         pairs = [[query, chunk_text] for _, chunk_text, _ in candidates]
@@ -92,7 +93,7 @@ class ChunkSelector:
         # Combine original data with new scores
         reranked_candidates = []
         for i, score in enumerate(scores):
-            if score >= cls.__SIMILARITY_THRESHOLD: 
+            if score >= cls.__CROSS_ENCODING_SIMILARITY_THRESHOLD: 
                 url, chunk_text, _ = candidates[i]
                 reranked_candidates.append((url, chunk_text, float(score)))
             
@@ -131,7 +132,7 @@ class ChunkSelector:
         
         for (url, chunk_text), c_vec in zip(all_candidates, chunk_vectors):
             score = cls.__calculate_cosine_similarity(query_vector, c_vec)
-            if score >= cls.__SIMILARITY_THRESHOLD: 
+            if score >= cls.__COSINE_SIMILARITY_THRESHOLD: 
                 chunk_scores.append((url, chunk_text, score)) 
                 
         chunk_scores.sort(key=lambda x: x[2], reverse=True) 

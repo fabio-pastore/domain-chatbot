@@ -136,7 +136,7 @@ class PromptBuilder:
                    - If the Question is in Italian: "Affidabilità: <comment> (<score>/5)"
                    - If the Question is in English: "Reliability: <comment> (<score>/5)"
                    The <comment> MUST briefly justify the score based on how well the reference texts support the answer. The <comment> MUST be made using natural language.
-                   The <score> MUST be an integer ranging from 0 (MINIMUM) to 5 (MAXIMUM). <score> MUST only contain a NUMBER and NO TEXT. The score should NOT be based on how complete the <reference_texts> are, but ONLY how well the they answer the user's query.
+                   The <score> MUST be an integer ranging from 0 (MINIMUM) to 5 (MAXIMUM). <score> MUST only contain a NUMBER and NO TEXT. <score> MUST ONLY be based on how well the the <reference_texts> answer the user's query and NO OTHER criteria.
                 2. STRICT GROUNDING: You must ONLY use facts explicitly mentioned in the <reference_texts>. If the text mentions a "trilogy" but does not name the movies, DO NOT name them. NEVER use outside knowledge.
                 3. NO META-TALK: NEVER reveal your sources. Do NOT use phrases like "according to the provided text" or "as per the reference texts" (e.g. if input language is italian, you must NOT write ANYTHING related to "testi forniti" or "riferimenti forniti" or "dati forniti")
                     nor "the provided information states." Speak as if you inherently KNOW the facts. If you need, you MAY say "according to sources" (or "basandomi sulle fonti", "come riportato dalle fonti" in italian).  
