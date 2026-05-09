@@ -1,40 +1,67 @@
 class PromptBuilder:
     @staticmethod
     def build_query_rewrite_prompt(chat_history: str, current_query: str) -> str:
-        prompt = f"""You are an expert search query rewriter for an automated system.
-                    Your task is to take a conversational chat history and a new user query, and rewrite the new user query into a standalone, optimized natural language search query.
-                    Resolve any pronouns (like "it", "they", "he", "she") to their actual subjects based on the chat history.
+        prompt = f"""You are an expert search query translator and rewriter. 
+                    Your primary task is to take a conversational chat history and a new user query (which may be in English), and rewrite it into a standalone, optimized search query strictly in ITALIAN.
 
                     CRITICAL RULES:
-                    1. Do NOT answer the query.
-                    2. ONLY output the rewritten standalone query.
-                    3. Do NOT include any conversational filler, notes, or explanations.
-                    4. Do NOT wrap the query in quotes.
-                    5. Do NOT use search operators like '+', ':', or 'AND'. Keep it natural language.
-                    6. Rewrite the query into as little words as possible, stricly including ONLY what is NEEDED to search for the answer on a search engine.
-                    7. CRITICAL - ALWAYS translate and rewrite the query into ITALIAN.
+                    1. OUTPUT LANGUAGE: The final query MUST be in Italian. No exceptions.
+                    2. Resolve any pronouns (it, they, he, she) based on the chat history.
+                    3. Keep it incredibly concise. Use ONLY the essential keywords needed for a search engine.
+                    4. DO NOT answer the query. DO NOT include filler, notes, quotes, or operators (+, :).
+                    5. ONLY include key words relevant to the user query, be as concise as possible. The standalone query does NOT necessarily have to consist of a grammatically complete sentence.
+                    6. ONLY output the translated Italian query.
 
+                    EXAMPLES:
+                    Chat History: User: Who directed Inception? AI: Christopher Nolan directed it.
+                    Current User Query: What other movies did he make?
+                    Query di ricerca in italiano: film diretti da Christopher Nolan
+
+                    Chat History: User: What is the capital of France? AI: Paris.
+                    Current User Query: How many people live there?
+                    Query di ricerca in italiano: popolazione Parigi
+
+                    User: Quali sono i principali pianeti del sistema solare?
+                    Query di ricerca in italiano: pianeti sistema solare
+
+                    === CURRENT TASK ===
                     Chat History:
                     {chat_history}
 
                     Current User Query: {current_query}
 
-                    Standalone Query:"""
+                    Query di ricerca in italiano:"""
         return prompt
 
     @staticmethod
     def build_guardrail_prompt(query: str, domain: str = "") -> str:
-        prompt = f"""You are a guardrail classifier for an AI assistant.
-                    Your job is to determine if the user's query is a meaningful, answerable question or statement.
+        prompt = f"""You are a guardrail and routing classifier for an AI search assistant.
+                    Your job is twofold:
+                    1. Determine if the user's query is a meaningful, answerable question/statement.
+                    2. If it is meaningful, select the single most appropriate domain to search for the answer based on the query's topic.
 
-                    If the query is meaningful (e.g., asking for facts, explanations, advice, or general knowledge), output exactly: ALLOWED
-                    If the query is meaningless, gibberish, completely random keystrokes, or impossible to answer (e.g., "asdf", "...", "++++"), output exactly: REJECTED
+                    ### Step 1: Validation Rules
+                    - ALLOWED: The query is meaningful (e.g., asking for facts, explanations, advice, or general knowledge).
+                    - REJECTED: The query is meaningless, gibberish, completely random keystrokes, or impossible to answer (e.g., "asdf", "...", "++++").
 
-                    Do not provide any other explanation or text.
+                    ### Step 2: Domain Routing Rules
+                    If the query is ALLOWED, you must select one of the following domains based on these guidelines:
+                    - "marvel.com": Select this for queries related to comic books, Marvel superheroes (e.g., Spider-Man, Iron Man, X-Men), villains, the Marvel Cinematic Universe (MCU), and related media.
+                    - "www.ipsos.com": Select this for queries related to market research, public opinion polls, statistical surveys, and consumer behavioral data.
+                    - "www.raiplaysound.it": Select this for queries related to Italian radio, RAI podcasts, audio documentaries, and audio broadcasting programs.
+                    - "it.wikipedia.org": Select this as the DEFAULT fallback for all other general knowledge, history, science, geography, biographies, and factual questions that do not strictly fit the specific domains above.
+
+                    ### Output format
+                    You must output your response STRICTLY as a valid JSON object. Do not provide any other explanation, text, or markdown code blocks.
+
+                    Output Schema:
+                    {{
+                        "status": "ALLOWED" | "REJECTED",
+                        "domain": "selected_domain"
+                    }}
 
                     User Query: {query}
-
-                    Classification:"""
+                    """
         return prompt
 
     @staticmethod
@@ -60,15 +87,23 @@ class PromptBuilder:
     @staticmethod
     def build_answer_user_query_prompt(query: str, query_context_data: str) -> str:
         prompt = f"""
-        Sei un assistente che risponde solo basandosi sui testi forniti.
-        Se le informazioni non sono presenti nei testi, dillo esplicitamente, ad esempio: "Mi dispiace, non ho informazioni sufficienti per rispondere a questa domanda". 
-        Se questo è il caso, NON serve aggiungere altro, non devi fornire giustificazioni.
+                    You are a strictly grounded assistant. Your primary directive is to answer the user's question relying EXCLUSIVELY on the information provided within the <reference_texts> tags.
 
-        NON menzionare di essere a conoscenza delle informazioni grazie ai testi di riferimento. Sei onnisciente!
+                    <rules>
+                    1. LANGUAGE ADAPTATION: Detect the language of the Question. Your Answer must be written entirely in that exact same language.
+                    2. EXCLUSIVE RELIANCE: Ignore all external or prior knowledge. If the exact answer is not present in the <reference_texts>, you must act as if you do not know it.
+                    3. INSUFFICIENT INFO: If the <reference_texts> are empty, or if they do not contain the answer, you must output exactly this string translated into the language of the Question:
+                    "I'm sorry, I don't have enough information to answer this question." (i.e. if input language is italian, you MUST answer with "Mi dispiace, ma non ho abbastanza informazioni per rispondere a questa domanda.")
+                    Do not add anything else.
+                    4. NO META-TALK: NEVER reveal your sources. Do NOT use phrases like "according to the provided text" (i.e. if input language is italian, do NOT mention "testi forniti" or anything related to provided text information) 
+                    or "the provided information states." Speak as if you inherently know the facts.
+                    5. RESPONSE FORMAT: Provide a concise, grammatically complete sentence. Do not output bare facts; briefly rephrase the core of the question to make the answer self-contained.
+                    </rules>
 
-        TESTI DI RIFERIMENTO:
-        {query_context_data}
+                    <reference_texts>
+                    {query_context_data}
+                    </reference_texts>
 
-        DOMANDA: {query}
-        RISPOSTA:"""
+                    Question: {query}
+                    Answer:"""
         return prompt

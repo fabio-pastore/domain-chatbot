@@ -37,6 +37,7 @@ class ChatOutput(BaseModel):
     info: str
     query_answer: str = ""
     standalone_query: str = ""
+    selected_domain: str
     relevant_urls: list[str] = []
     extracted_content: list[dict] = []
     reference_urls: set[str] = set()
@@ -116,6 +117,7 @@ def chat(message: ChatInput) -> ChatOutput:
         info=success_msg,
         query_answer=llm_answer,
         standalone_query=intent_result.standalone_query,
+        selected_domain=intent_result.selected_domain,
         relevant_urls=intent_result.relevant_urls,
         extracted_content=extracted_contents,
         reference_urls=reference_urls,

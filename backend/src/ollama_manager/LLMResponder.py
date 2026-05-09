@@ -1,4 +1,6 @@
 import os
+import json
+import regex as re
 from src.ollama_manager.OllamaResponder import OllamaResponder
 from src.ollama_manager.PromptBuilder import PromptBuilder
 
@@ -9,7 +11,7 @@ class LLMResponder(OllamaResponder):
 
         The constructor sets up the LLMResponder with the following default values:
         - ollama_url: "http://host.docker.internal:11434/api/generate"
-        - ollama_model: "llama3"
+        - ollama_model: "ministral-3:3b"
 
         These values can be overridden by setting the corresponding environment variables:
         - OLLAMA_LLM_URL
@@ -17,7 +19,7 @@ class LLMResponder(OllamaResponder):
         """
         super().__init__(
             ollama_url=os.getenv("OLLAMA_LLM_URL", "http://host.docker.internal:11434/api/generate"),
-            ollama_model=os.getenv("OLLAMA_LLM_MODEL", "llama3")
+            ollama_model=os.getenv("OLLAMA_LLM_MODEL", "ministral-3:3b")
         )
 
     def rewrite_query(self, chat_history: str, current_query: str) -> str:
@@ -48,13 +50,31 @@ class LLMResponder(OllamaResponder):
         """
         prompt = PromptBuilder.build_guardrail_prompt(query, domain)
         response = self._call_ollama(prompt)
+
+        match = re.search(r'```(?:json)?(.*?)```', response, re.DOTALL)
+        clean_text = ""
+                
+        if match:
+            clean_text = match.group(1).strip()
+        else:
+            clean_text = response.strip()
         
-        cleaned_response = response.upper().strip()
-        if "ALLOWED" in cleaned_response:
-            return True
-        elif "REJECTED" in cleaned_response:
-            return False
-        return False
+        try:
+            json_response = json.loads(clean_text)
+            query_status = json_response.get("status").upper()
+            if "ALLOWED" in query_status:
+                return {"accepted": True, "proposed_domain": json_response.get("domain")}
+            elif "REJECTED" in query_status:
+                return {"accepted": False, "proposed_domain": ""}
+            else: return {"accepted": False, "proposed_domain": ""}
+        except json.JSONDecodeError:
+            print("[QueryHandler] The LLM failed to return valid JSON.")
+            print(clean_text)
+            if "ALLOWED" in clean_text.upper():
+                return {"accepted": True, "proposed_domain": "it.wikipedia.org"}
+            elif "REJECTED" in clean_text.upper():
+                return {"accepted": False, "proposed_domain": ""}
+            else: return {"accepted": False, "proposed_domain": ""}
 
     def filter_relevant_urls(self, query: str, search_results: list[dict]) -> list[str]:
         """

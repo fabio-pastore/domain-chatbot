@@ -7,9 +7,9 @@ class ChunkSelector:
     __CHUNK_SIZE: n of characters, lower = more precision but may cut a paragraph in half, 
     higher = more context but may include irrelevant info and dilute embedding vector
     '''
-    __CHUNK_SIZE: int = 900 
-    __MAX_OUTPUT_LENGTH: int = 3600 #4 chunks, small models degrade significantly when the prompt gets long 
-    __SIMILARITY_THRESHOLD: float = 0.75 #0.0 to 1.0
+    __CHUNK_SIZE: int = 1000 
+    __MAX_OUTPUT_LENGTH: int = 6000 # 4 chunks, small models degrade significantly when the prompt gets long 
+    __SIMILARITY_THRESHOLD: float = 0.0 # 0.0 to 1.0 NOTE: do we really need this? model already discriminates on whether the provided data can be used to answer the question
 
     @staticmethod
     def __calculate_cosine_similarity(v1, v2) -> float:
@@ -106,7 +106,7 @@ class ChunkSelector:
         
         for url, chunk_text, c_vec in chunk_vecs:
             score = cls.__calculate_cosine_similarity(query_vector, c_vec)
-            if score >= cls.__SIMILARITY_THRESHOLD:#filter out chunks that are too dissimilar to the query, mitigating issues caused lack of useful chunks
+            if score >= cls.__SIMILARITY_THRESHOLD: # filter out chunks that are too dissimilar to the query, mitigating issues caused lack of useful chunks
                 chunk_scores.append((url, chunk_text, score)) 
                 
         chunk_scores.sort(key=lambda x: x[2], reverse=True) # score is in second position

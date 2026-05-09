@@ -1,11 +1,14 @@
 from pydantic import BaseModel
+import json
 from src.db_manager.ChatHistoryManager import chat_history_manager
 from src.ollama_manager.LLMResponder import llm_responder
 from src.url_retriever.DuckDuckGoUrlRetriever import DuckDuckGoUrlRetriever
+from src.url_retriever.SearxngUrlRetriever import SearxngUrlRetriever
 from src.url_retriever.WikipediaUrlRetriever import WikipediaUrlRetriever
 
 class IntentResult(BaseModel):
     standalone_query: str
+    selected_domain: str
     is_allowed: bool
     relevant_urls: list[str] = []
 
@@ -14,7 +17,8 @@ class QueryHandler:
         """
         Initializes the QueryHandler with URL retrievers.
         """
-        self.url_retriever = DuckDuckGoUrlRetriever(max_results=5)
+        # self.url_retriever = DuckDuckGoUrlRetriever(max_results=5)
+        self.url_retriever = SearxngUrlRetriever()
         self.wiki_retriever = WikipediaUrlRetriever()
 
     def process_query(self, session_id: str, raw_query: str) -> IntentResult:
@@ -28,14 +32,22 @@ class QueryHandler:
         Returns:
             IntentResult: An object containing the standalone query, whether it's allowed, and relevant URLs.
         """
-        is_allowed: bool = llm_responder.check_guardrails(raw_query)
+
+        llm_response = llm_responder.check_guardrails(raw_query)
+        target_domain = ""
+
+        print("[QueryHandler] LLM answered the prompt with the following: \n", llm_response)
+        is_allowed: bool = llm_response.get("accepted")
+        target_domain = llm_response.get("proposed_domain")
+
         if not is_allowed:
             return IntentResult(
                 standalone_query=raw_query,
+                selected_domain="",
                 is_allowed=False,
                 relevant_urls=[]
             )
-
+        
         history_str = chat_history_manager.get_history_string(session_id)
         
         if history_str != "No previous history.":
@@ -46,10 +58,11 @@ class QueryHandler:
         relevant_urls: list[str] = []
         if is_allowed:
             search_query = standalone_query
-            search_results: list[dict[str, str]] = self.url_retriever.retrieve_relevant_urls(search_query)
+            search_results: list[dict[str, str]] = self.url_retriever.retrieve_relevant_urls(search_query, target_domain)
             
             if not search_results:
-                print(f"[QueryHandler] DuckDuckGo returned 0 results for '{search_query}'. Falling back to Wikipedia...")
+                # print(f"[QueryHandler] DuckDuckGo returned 0 results for '{search_query}'. Falling back to Wikipedia...")
+                print(f"[QueryHandler] SearXNG returned 0 results for '{search_query}'. Falling back to Wikipedia OpenSearch API...")
                 wiki_urls = self.wiki_retriever.retrieve_relevant_urls(search_query)
                 if wiki_urls:
                     search_results = wiki_urls
@@ -60,6 +73,7 @@ class QueryHandler:
 
         return IntentResult(
             standalone_query=standalone_query,
+            selected_domain=target_domain,
             is_allowed=is_allowed,
             relevant_urls=relevant_urls
         )
