@@ -50,6 +50,7 @@ class LLMResponder(OllamaResponder):
         """
         prompt = PromptBuilder.build_guardrail_prompt(query, chat_history, prev_domain)
         response = self._call_ollama(prompt)
+        print("ORIGINAL LLM GUARDRAIL ANSWER: ", response)
 
         match = re.search(r'```(?:json)?(.*?)```', response, re.DOTALL)
         clean_text = ""
@@ -64,6 +65,9 @@ class LLMResponder(OllamaResponder):
             query_status = json_response.get("status").upper()
             if "ALLOWED" in query_status:
                 return {"accepted": True, "proposed_domain": json_response.get("domain")}
+            elif "AMBIGUOUS" in query_status:
+                additional_req_information: str = json_response.get("requested_information")
+                return {"accepted": False, "proposed_domain": "", "ambiguous": True, "req_info": additional_req_information}
             elif "REJECTED" in query_status:
                 return {"accepted": False, "proposed_domain": ""}
             else: return {"accepted": False, "proposed_domain": ""}
@@ -72,6 +76,8 @@ class LLMResponder(OllamaResponder):
             print(clean_text)
             if "ALLOWED" in clean_text.upper():
                 return {"accepted": True, "proposed_domain": "it.wikipedia.org"}
+            elif "AMBIGUOUS" in clean_text.upper():
+                return {"accepted": False, "proposed_domain": "", "ambiguous": True, "req_info": "Non ho capito cosa intendi esattamente. Potresti essere un po' più specifico?"}
             elif "REJECTED" in clean_text.upper():
                 return {"accepted": False, "proposed_domain": ""}
             else: return {"accepted": False, "proposed_domain": ""}
