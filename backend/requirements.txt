@@ -5,3 +5,4 @@ requests
 ddgs
 numpy
 regex
+langchain

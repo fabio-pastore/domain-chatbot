@@ -1,4 +1,5 @@
 from src.rag.TextEmbedder import TextEmbedder
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 import numpy as np
 
 class ChunkSelector:
@@ -9,6 +10,7 @@ class ChunkSelector:
     '''
     __CHUNK_SIZE: int = 1000 
     __MAX_OUTPUT_LENGTH: int = 8500 
+    __CHUNK_OVERLAP: int = 150
     __SIMILARITY_THRESHOLD: float = 0.1 # keep this low, reranking will do the hard work
 
     @staticmethod
@@ -48,55 +50,15 @@ class ChunkSelector:
         Returns:
             list[str]: A list of text chunks.
         """
-        chunks = []
-        overlap_chars = 150
         
-        words = page.replace('\n', ' \n ').split(' ')
-        words = [w for w in words if w != '']
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size = cls.__CHUNK_SIZE,
+            chunk_overlap  = cls.__CHUNK_OVERLAP,
+            #separators=["\n\n", "\n", ".", " ", ""]
+            #default separators are ["\n\n", "\n", " ", ""], having "." as separator can be bad since it's not only used to end a sentence (decimal numbers etc..)
+        )
+        return text_splitter.split_text(page)
         
-        curr_chunk_words = []
-        curr_len = 0
-        i = 0
-        
-        while i < len(words):
-            word = words[i]
-            word_len = len(word) + (1 if curr_chunk_words else 0)
-            
-            if curr_len + word_len <= cls.__CHUNK_SIZE:
-                curr_chunk_words.append(word)
-                curr_len += word_len
-                i += 1
-            else:
-                if curr_chunk_words:
-                    chunk = " ".join(curr_chunk_words).replace(' \n ', '\n').strip()
-                    if chunk:
-                        chunks.append(chunk)
-                    
-                    overlap_len = 0
-                    backtrack_i = i - 1
-                    while backtrack_i >= 0 and overlap_len + len(words[backtrack_i]) + 1 <= overlap_chars:
-                        overlap_len += len(words[backtrack_i]) + 1
-                        backtrack_i -= 1
-                    
-                    if backtrack_i < i - 1:
-                        i = backtrack_i + 1
-                        
-                    curr_chunk_words = []
-                    curr_len = 0
-                else:
-                    # what if single word longer than CHUNK_SIZE? let's just append it anyway
-                    chunks.append(word)
-                    i += 1
-                    curr_chunk_words = []
-                    curr_len = 0
-                    
-        if curr_chunk_words:
-            chunk = " ".join(curr_chunk_words).replace(' \n ', '\n').strip()
-            if chunk:
-                chunks.append(chunk)
-                
-        return chunks
-    
     @classmethod
     def __rerank_chunks(cls, query: str, candidates: list[tuple[str, str, float]]) -> list[tuple[str, str, float]]:
         """
