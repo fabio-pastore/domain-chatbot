@@ -37,18 +37,18 @@ class LLMResponder(OllamaResponder):
         response = self._call_ollama(prompt)
         return response if response else current_query
 
-    def check_guardrails(self, query: str, domain: str = "") -> bool:
+    def check_guardrails(self, query: str, chat_history: str, prev_domain: str) -> bool:
         """
         Checks if a query is allowed with specific prompt to LLM.
 
         Args:
             query (str): The query to be checked.
-            domain (str, optional): The domain to check against. Defaults to "".
+            prev_domain (str, optional): The previously selected domain. Defaults to "".
 
         Returns:
             bool: True if the query is allowed, False otherwise.
         """
-        prompt = PromptBuilder.build_guardrail_prompt(query, domain)
+        prompt = PromptBuilder.build_guardrail_prompt(query, chat_history, prev_domain)
         response = self._call_ollama(prompt)
 
         match = re.search(r'```(?:json)?(.*?)```', response, re.DOTALL)

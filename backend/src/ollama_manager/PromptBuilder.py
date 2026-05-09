@@ -1,66 +1,93 @@
 class PromptBuilder:
     @staticmethod
     def build_query_rewrite_prompt(chat_history: str, current_query: str) -> str:
-        prompt = f"""You are an expert search query translator and rewriter. 
-                    Your primary task is to take a conversational chat history and a new user query (which may be in English), and rewrite it into a standalone, optimized search query strictly in ITALIAN.
+        prompt = f"""You are an expert search query optimization engine.
+                    Your task is to analyze a conversational history and a new user query, resolve any contextual references, and generate a standalone, highly concise search query translated strictly into ITALIAN.
 
-                    CRITICAL RULES:
-                    1. OUTPUT LANGUAGE: The final query MUST be in Italian. No exceptions.
-                    2. Resolve any pronouns (it, they, he, she) based on the chat history.
-                    3. Keep it incredibly concise. Use ONLY the essential keywords needed for a search engine.
-                    4. DO NOT answer the query. DO NOT include filler, notes, quotes, or operators (+, :).
-                    5. ONLY include key words relevant to the user query, be as concise as possible. The standalone query does NOT necessarily have to consist of a grammatically complete sentence.
-                    6. ONLY output the translated Italian query.
+                    <rules>
+                    1. STRICT LANGUAGE: The final output MUST be entirely in Italian, regardless of the input language.
+                    2. CONTEXT RESOLUTION: Use the <chat_history> to resolve pronouns (e.g., he, she, it, they) or implicit references in the <current_query> into explicit entities.
+                    3. KEYWORD OPTIMIZATION: Extract ONLY the essential keywords needed for a search engine. Do not write grammatically complete sentences. Strip away conversational filler, pleasantries, and unnecessary words.
+                    4. STRICT FIDELITY: Do NOT add extra attributes, conditions, filters, or details (such as years, adjectives, or locations) to the query UNLESS they are explicitly stated in the <current_query> or strictly required by the <chat_history>.
+                    5. CLEAN OUTPUT: Do not include search operators (like +, -, :, quotes). Do NOT attempt to answer the user's question.
+                    6. ZERO-CHATTER: Output absolutely nothing but the final translated string.
+                    </rules>
 
-                    EXAMPLES:
-                    Chat History: User: Who directed Inception? AI: Christopher Nolan directed it.
-                    Current User Query: What other movies did he make?
-                    Query di ricerca in italiano: film diretti da Christopher Nolan
+                    <examples>
+                    <example>
+                    <chat_history>
+                    User: Who directed Inception?
+                    AI: Christopher Nolan directed it.
+                    </chat_history>
+                    <current_query>What other movies did he make?</current_query>
+                    <output>film diretti Christopher Nolan</output>
+                    </example>
 
-                    Chat History: User: What is the capital of France? AI: Paris.
-                    Current User Query: How many people live there?
-                    Query di ricerca in italiano: popolazione Parigi
+                    <example>
+                    <chat_history>
+                    User: What is the capital of France?
+                    AI: Paris.
+                    </chat_history>
+                    <current_query>How many people live there?</current_query>
+                    <output>popolazione Parigi</output>
+                    </example>
 
-                    User: Quali sono i principali pianeti del sistema solare?
-                    Query di ricerca in italiano: pianeti sistema solare
+                    <example>
+                    <chat_history></chat_history>
+                    <current_query>Which planets are there in the solar system?</current_query>
+                    <output>pianeti sistema solare</output>
+                    </example>
+                    </examples>
 
                     === CURRENT TASK ===
-                    Chat History:
+                    <chat_history>
                     {chat_history}
+                    </chat_history>
 
-                    Current User Query: {current_query}
-
-                    Query di ricerca in italiano:"""
+                    <current_query>{current_query}</current_query>
+                    <output>"""
         return prompt
 
     @staticmethod
-    def build_guardrail_prompt(query: str, domain: str = "") -> str:
-        prompt = f"""You are a guardrail and routing classifier for an AI search assistant.
-                    Your job is twofold:
-                    1. Determine if the user's query is a meaningful, answerable question/statement.
-                    2. If it is meaningful, select the single most appropriate domain to search for the answer based on the query's topic.
+    def build_guardrail_prompt(query: str, chat_history: str, prev_domain: str) -> str:
+        prompt = f"""You are an intelligent guardrail and routing classifier for an AI search assistant.
+                    Your task is to validate user queries and route them to the most appropriate search domain based on the query content and conversation history.
 
-                    ### Step 1: Validation Rules
-                    - ALLOWED: The query is meaningful (e.g., asking for facts, explanations, advice, or general knowledge).
-                    - REJECTED: The query is meaningless, gibberish, completely random keystrokes, or impossible to answer (e.g., "asdf", "...", "++++").
+                    <instructions>
+                    1. VALIDATION: Determine if the query is meaningful.
+                    - Set status to "ALLOWED": If the query is a comprehensible question, statement, or request (e.g., asking for facts, advice, or general knowledge).
+                    - Set status to "REJECTED": If the query is gibberish, random keystrokes, or completely meaningless (e.g., "asdf", "...", "++++").
 
-                    ### Step 2: Domain Routing Rules
-                    If the query is ALLOWED, you must select one of the following domains based on these guidelines:
-                    - "marvel.com": Select this for queries related to comic books, Marvel superheroes (e.g., Spider-Man, Iron Man, X-Men), villains, the Marvel Cinematic Universe (MCU), and related media.
-                    - "www.ipsos.com": Select this for queries related to market research, public opinion polls, statistical surveys, and consumer behavioral data.
-                    - "www.raiplaysound.it": Select this for queries related to Italian radio, RAI podcasts, audio documentaries, and audio broadcasting programs.
-                    - "it.wikipedia.org": Select this as the DEFAULT fallback for all other general knowledge, history, science, geography, biographies, and factual questions that do not strictly fit the specific domains above.
+                    2. ROUTING LOGIC: If the status is ALLOWED, determine the "domain" by strictly following this order of evaluation:
+                    - Step A (Context Check): Look at the <previous_domain> and <chat_history>. If the new <query> is a follow-up or relates to the same topic, output the <previous_domain>. If you are UNSURE whether the topic has changed, heavily bias your choice toward the <previous_domain>.
+                    - Step B (New Topic): If the <query> is clearly an entirely new, unrelated topic (or if <previous_domain> is empty), select from these specific domains:
+                        * "marvel.com": Comics, Marvel superheroes (Spider-Man, Iron Man, etc.), villains, MCU, and related media.
+                        * "www.ipsos.com": Market research, public opinion polls, statistical surveys, and consumer data.
+                        * "www.raiplaysound.it": Italian radio, RAI podcasts, audio documentaries, and audio broadcasting.
+                    - Step C (Fallback): If the query does not fit Step A or Step B, default to "it.wikipedia.org" (for general knowledge, history, science, etc.).
+                    
+                    *Note: If status is REJECTED, set the domain to null.*
 
-                    ### Output format
-                    You must output your response STRICTLY as a valid JSON object. Do not provide any other explanation, text, or markdown code blocks.
+                    3. OUTPUT FORMAT: You must respond ONLY with a valid, raw JSON object. Do not include markdown code blocks (like ```json), explanations, or any other text.
+                    </instructions>
 
-                    Output Schema:
+                    <json_schema>
                     {{
                         "status": "ALLOWED" | "REJECTED",
-                        "domain": "selected_domain"
+                        "domain": "selected_domain_or_null"
                     }}
+                    </json_schema>
 
-                    User Query: {query}
+                    <context>
+                    <chat_history>
+                    {chat_history}
+                    </chat_history>
+                    <previous_domain>{prev_domain}</previous_domain>
+                    </context>
+
+                    <query>
+                    {query}
+                    </query>
                     """
         return prompt
 
@@ -95,7 +122,7 @@ class PromptBuilder:
                     3. INSUFFICIENT INFO: If the <reference_texts> are empty, or if they do not contain the answer, you must output exactly this string translated into the language of the Question:
                     "I'm sorry, I don't have enough information to answer this question." (i.e. if input language is italian, you MUST answer with "Mi dispiace, ma non ho abbastanza informazioni per rispondere a questa domanda.")
                     Do not add anything else.
-                    4. NO META-TALK: NEVER reveal your sources. Do NOT use phrases like "according to the provided text" (i.e. if input language is italian, do NOT mention "testi forniti" or anything related to provided text information) 
+                    4. NO META-TALK: NEVER reveal your sources. Do NOT use phrases like "according to the provided text" or "as per the reference texts" (i.e. if input language is italian, you must NOT write anything related to "testi forniti" o "riferimenti forniti".  
                     or "the provided information states." Speak as if you inherently know the facts.
                     5. RESPONSE FORMAT: Provide a concise, grammatically complete sentence. Do not output bare facts; briefly rephrase the core of the question to make the answer self-contained.
                     </rules>

@@ -32,13 +32,17 @@ class QueryHandler:
         Returns:
             IntentResult: An object containing the standalone query, whether it's allowed, and relevant URLs.
         """
-
-        llm_response = llm_responder.check_guardrails(raw_query)
+        history_str = chat_history_manager.get_history_string(session_id)
+        prev_domain: str = chat_history_manager.get_query_domain(session_id)
+        print("PREV DOMAIN:", prev_domain)
+        
+        llm_response = llm_responder.check_guardrails(raw_query, history_str, prev_domain)
         target_domain = ""
 
         print("[QueryHandler] LLM answered the prompt with the following: \n", llm_response)
         is_allowed: bool = llm_response.get("accepted")
         target_domain = llm_response.get("proposed_domain")
+        chat_history_manager.set_query_domain(session_id, target_domain) # update query domain
 
         if not is_allowed:
             return IntentResult(
@@ -48,7 +52,6 @@ class QueryHandler:
                 relevant_urls=[]
             )
         
-        history_str = chat_history_manager.get_history_string(session_id)
         
         if history_str != "No previous history.":
             standalone_query: str = llm_responder.rewrite_query(history_str, raw_query)

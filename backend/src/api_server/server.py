@@ -37,7 +37,7 @@ class ChatOutput(BaseModel):
     info: str
     query_answer: str = ""
     standalone_query: str = ""
-    selected_domain: str
+    selected_domain: str = ""
     relevant_urls: list[str] = []
     extracted_content: list[dict] = []
     reference_urls: set[str] = set()

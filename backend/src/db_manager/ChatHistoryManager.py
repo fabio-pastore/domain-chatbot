@@ -6,6 +6,7 @@ class ChatHistoryManager:
     """
     def __init__(self, max_history: int = 5):
         self.history: dict[str, list[dict[str, str]]] = {}
+        self.last_domain: dict[str, str] = {}
         self.max_history = max_history
 
     def add_message(self, session_id: str, role: str, content: str):
@@ -31,5 +32,14 @@ class ChatHistoryManager:
             formatted.append(f"{role}: {msg['content']}")
         
         return "\n".join(formatted)
+    
+    def set_query_domain(self, session_id: str, domain: str) -> None:
+        """Updates the central domain used for extraction based on domain proposed by the query analyzer LLM"""
+        if (session_id not in self.last_domain):
+            self.last_domain[session_id] = domain
+        self.last_domain[session_id] = domain
+
+    def get_query_domain(self, session_id: str) -> str:
+        return self.last_domain.get(session_id, "")
 
 chat_history_manager = ChatHistoryManager()
