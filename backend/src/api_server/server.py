@@ -60,8 +60,9 @@ def chat(message: ChatInput) -> ChatOutput:
     """
     intent_result = query_handler.process_query(message.session_id, message.query)
 
-    if not intent_result.is_allowed:
-        rejection_msg = "Your query appears to be meaningless or invalid. Please ask a clear, answerable question."
+    if not intent_result.is_allowed or intent_result.is_ambiguous:
+        rejection_msg = "Your query appears to be meaningless or invalid. Please ask a clear, answerable question." if intent_result.is_allowed \
+                        else (intent_result.requested_information) 
 
         chat_history_manager.add_message(message.session_id, "user", message.query)
         chat_history_manager.add_message(message.session_id, "assistant", rejection_msg)
@@ -111,7 +112,9 @@ def chat(message: ChatInput) -> ChatOutput:
     success_msg = f"Query accepted! Rewritten as: '{intent_result.standalone_query}'. Found {urls_found} URLs, parsed {parsed_count} via MWP."
 
     chat_history_manager.add_message(message.session_id, "user", message.query)
-    chat_history_manager.add_message(message.session_id, "assistant", success_msg)
+    chat_history_manager.add_message(message.session_id, "assistant", llm_answer)
+
+    print(chat_history_manager.get_history_string(message.session_id))
 
     return ChatOutput(
         info=success_msg,
