@@ -5,5 +5,5 @@ class UrlRetriever(ABC):
         pass
 
     @abstractmethod
-    def retrieve_relevant_urls(self, search_query: str) -> list[str]:
+    def retrieve_relevant_urls(self, search_query: str) -> list[dict[str, str]]:
         pass

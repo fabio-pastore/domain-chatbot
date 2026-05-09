@@ -1,6 +1,5 @@
 import requests
 import os
-from typing import Optional
 
 class MWPClient:
     """
@@ -14,7 +13,11 @@ class MWPClient:
     @classmethod
     def is_domain_supported(cls, url: str) -> bool:
         """
-        Checks if a given URL belongs to a supported MWP domain
+        Checks if a given URL belongs to a supported MWP domain.
+        Args:
+            url (str): The URL to check.
+        Returns:
+            bool: True if the URL belongs to a supported domain, False otherwise.
         """
         for domain in cls.SUPPORTED_DOMAINS:
             if f"://{domain}" in url or f"://{domain}/" in url:
@@ -22,10 +25,14 @@ class MWPClient:
         return False
 
     @classmethod
-    def parse_url(cls, url: str) -> Optional[str]:
+    def parse_url(cls, url: str) -> str | None:
         """
-        Sends the URL to MWP and returns the extracted Markdown content
-        Returns None if parsing fails
+        Sends the URL to MWP and returns the extracted Markdown content.
+        Args:
+            url (str): The URL to parse.
+
+        Returns:
+            str | None: The extracted Markdown content if successful, None otherwise.
         """
         try:
             response = requests.get(f"{cls.MWP_BASE_URL}/parse", params={"url": url}, timeout=60)
@@ -39,4 +46,3 @@ class MWPClient:
             print(f"[MWPClient] | [ERROR] Failed to connect to MWP: {e}")
             return None
 
-mwp_client = MWPClient()
