@@ -32,7 +32,7 @@ class OllamaResponder(ABC):
         }
         
         try:
-            response = requests.post(self.ollama_url, json=payload, timeout=30)
+            response = requests.post(self.ollama_url, json=payload, timeout=120)
             response.raise_for_status()
             data = response.json()
             if embed:

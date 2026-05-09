@@ -8,7 +8,7 @@ class ChunkSelector:
     higher = more context but may include irrelevant info and dilute embedding vector
     '''
     __CHUNK_SIZE: int = 1000 
-    __MAX_OUTPUT_LENGTH: int = 6000 # 4 chunks, small models degrade significantly when the prompt gets long 
+    __MAX_OUTPUT_LENGTH: int = 12000 # 4 chunks, small models degrade significantly when the prompt gets long 
     __SIMILARITY_THRESHOLD: float = 0.0 # 0.0 to 1.0 NOTE: do we really need this? model already discriminates on whether the provided data can be used to answer the question
 
     @staticmethod
@@ -40,6 +40,7 @@ class ChunkSelector:
     def __chunking(cls, page: str) -> list[str]:
         """
         Splits a page of text by newlines into chunks of a specified max size.
+        Implements chunk overlap and respects word boundaries.
 
         Args:
             page (str): The text to be chunked.
@@ -48,34 +49,52 @@ class ChunkSelector:
             list[str]: A list of text chunks.
         """
         chunks = []
-        curr_chunk: str = "" 
+        overlap_chars = 150
         
-        for p in page.split("\n"):
-            while len(p) > cls.__CHUNK_SIZE:
-                if curr_chunk:
-                    chunks.append(curr_chunk)
-                    curr_chunk = ""
-                
-                chunks.append(p[:cls.__CHUNK_SIZE])
-                p = p[cls.__CHUNK_SIZE:]
-                '''
-                TODO: low priority, minor improvement.
-                Add __CHUNK_OVERLAP = 120 
-                Sliding window overlap between chunks (only those that are suddenly cut off) to avoid cutting words and sentences in half
-                '''
-
-            separator = "\n" if curr_chunk else ""
+        words = page.replace('\n', ' \n ').split(' ')
+        words = [w for w in words if w != '']
+        
+        curr_chunk_words = []
+        curr_len = 0
+        i = 0
+        
+        while i < len(words):
+            word = words[i]
+            word_len = len(word) + (1 if curr_chunk_words else 0)
             
-            if (len(curr_chunk) + len(separator) + len(p) <= cls.__CHUNK_SIZE):
-                curr_chunk += (separator + p)
+            if curr_len + word_len <= cls.__CHUNK_SIZE:
+                curr_chunk_words.append(word)
+                curr_len += word_len
+                i += 1
             else:
-                if curr_chunk: 
-                    chunks.append(curr_chunk)
-                curr_chunk = p 
+                if curr_chunk_words:
+                    chunk = " ".join(curr_chunk_words).replace(' \n ', '\n').strip()
+                    if chunk:
+                        chunks.append(chunk)
+                    
+                    overlap_len = 0
+                    backtrack_i = i - 1
+                    while backtrack_i >= 0 and overlap_len + len(words[backtrack_i]) + 1 <= overlap_chars:
+                        overlap_len += len(words[backtrack_i]) + 1
+                        backtrack_i -= 1
+                    
+                    if backtrack_i < i - 1:
+                        i = backtrack_i + 1
+                        
+                    curr_chunk_words = []
+                    curr_len = 0
+                else:
+                    # what if single word longer than CHUNK_SIZE? let's just append it anyway
+                    chunks.append(word)
+                    i += 1
+                    curr_chunk_words = []
+                    curr_len = 0
+                    
+        if curr_chunk_words:
+            chunk = " ".join(curr_chunk_words).replace(' \n ', '\n').strip()
+            if chunk:
+                chunks.append(chunk)
                 
-        if curr_chunk:
-            chunks.append(curr_chunk)
-            
         return chunks
     
     @classmethod
@@ -102,16 +121,17 @@ class ChunkSelector:
                 c_vec: list[float] = TextEmbedder.embed_text(c)
                 chunk_vecs.append((url, c, c_vec)) 
 
-        chunk_scores: list[tuple[str, str, float]] = []
+        chunks_by_url: dict[str, list[tuple[str, float]]] = {}
         
         for url, chunk_text, c_vec in chunk_vecs:
             score = cls.__calculate_cosine_similarity(query_vector, c_vec)
             if score >= cls.__SIMILARITY_THRESHOLD: # filter out chunks that are too dissimilar to the query, mitigating issues caused lack of useful chunks
-                chunk_scores.append((url, chunk_text, score)) 
+                if url not in chunks_by_url:
+                    chunks_by_url[url] = []
+                chunks_by_url[url].append((chunk_text, score)) 
                 
-        chunk_scores.sort(key=lambda x: x[2], reverse=True) # score is in second position
-        # scores = [elem[2] for elem in chunk_scores]
-        # print(scores)
+        for url in chunks_by_url:
+            chunks_by_url[url].sort(key=lambda x: x[1], reverse=True)
         
         selected = []
         total_chars = 0
@@ -120,14 +140,28 @@ class ChunkSelector:
         After fetching top-10, use a cross-encoder or simple keyword overlap score to re-rank and pick the final top-4.
         '''
         
-        for url, chunk , _ in chunk_scores:
-             if total_chars + len(chunk) > cls.__MAX_OUTPUT_LENGTH:
-                 break
-
-             selected.append((url, chunk))
-             total_chars += len(chunk)
-
-        # transform into dict for output
+        # me when round is robin
+        urls_available = list(chunks_by_url.keys())
+        while urls_available and total_chars < cls.__MAX_OUTPUT_LENGTH:
+            urls_to_remove = []
+            for url in urls_available:
+                if total_chars >= cls.__MAX_OUTPUT_LENGTH:
+                    break
+                
+                chunk_text, score = chunks_by_url[url].pop(0)
+                
+                if total_chars + len(chunk_text) > cls.__MAX_OUTPUT_LENGTH:
+                    urls_to_remove.append(url)
+                    continue
+                
+                selected.append((url, chunk_text))
+                total_chars += len(chunk_text)
+                
+                if not chunks_by_url[url]:
+                    urls_to_remove.append(url)
+            for url in set(urls_to_remove):
+                if url in urls_available:
+                    urls_available.remove(url)
         out: dict[str, list[str]] = {}
         for url, chunk in selected: # NOTE: selected contains pairs <url, selected_chunk>
              if url not in out:

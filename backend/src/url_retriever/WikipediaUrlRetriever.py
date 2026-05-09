@@ -4,7 +4,7 @@ from src.utils.requests_get_post_utils import *
 class WikipediaUrlRetriever(UrlRetriever):
 
     __WIKIPEDIA_API_URL: str = "https://it.wikipedia.org/w/api.php"
-    __WIKIPEDIA_SEARCH_RESULT_LIMIT: str = "3"
+    __WIKIPEDIA_SEARCH_RESULT_LIMIT: int = 3
 
     def __init__(self):
         """
@@ -12,7 +12,7 @@ class WikipediaUrlRetriever(UrlRetriever):
         """
         super().__init__()
 
-    def retrieve_relevant_urls(self, search_query: str) -> list[dict[str, str]]:
+    def retrieve_relevant_urls(self, search_query: str, max_results: int | None = None) -> list[dict[str, str]]:
         """
         Retrieves relevant URLs from Wikipedia based on the search query.
 
@@ -22,11 +22,12 @@ class WikipediaUrlRetriever(UrlRetriever):
         Returns:
             list[dict[str, str]]: A list of dictionaries containing the URL, title, and snippet of each search result.
         """
+        limit = max_results if max_results is not None else self.__WIKIPEDIA_SEARCH_RESULT_LIMIT
         search_params: dict[str, str] = {
             "action": "query",
             "list": "search",
             "srsearch": search_query,
-            "srlimit": WikipediaUrlRetriever.__WIKIPEDIA_SEARCH_RESULT_LIMIT,
+            "srlimit": str(limit),
             "format": "json"
         }
         req_header: dict[str, str] = {
