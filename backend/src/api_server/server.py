@@ -156,6 +156,7 @@ def delete_session(session_id: str):
         raise HTTPException(status_code=404, detail="Session not found")
     return {"status": "deleted"}
 
+# to know if the server is alive or dead
 @app.get("/health")
 def health():
     """Checks the health status of the server.

@@ -7,3 +7,6 @@ numpy
 regex
 mariadb
 jinja2
+sentence-transformers
+#torch      do we need it?
+langchain-text-splitters

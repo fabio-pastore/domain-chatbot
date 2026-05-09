@@ -2,7 +2,6 @@ from pydantic import BaseModel
 import json
 from src.db_manager.ChatHistoryManager import chat_history_manager
 from src.ollama_manager.LLMResponder import llm_responder
-from src.url_retriever.DuckDuckGoUrlRetriever import DuckDuckGoUrlRetriever
 from src.url_retriever.SearxngUrlRetriever import SearxngUrlRetriever
 from src.url_retriever.WikipediaUrlRetriever import WikipediaUrlRetriever
 
@@ -10,6 +9,8 @@ class IntentResult(BaseModel):
     standalone_query: str
     selected_domain: str
     is_allowed: bool
+    is_ambiguous: bool = False
+    requested_information: str = ""
     relevant_urls: list[str] = []
 
 class QueryHandler:
@@ -45,17 +46,28 @@ class QueryHandler:
 
         print("[QueryHandler] LLM answered the prompt with the following: \n", llm_response)
         is_allowed: bool = llm_response.get("accepted")
+
+        is_ambiguous: bool = llm_response.get("ambiguous")
+        if (is_ambiguous):
+            return IntentResult(
+                standalone_query=raw_query,
+                selected_domain="",
+                is_allowed=False,
+                is_ambiguous=True,
+                requested_information=llm_response.get("req_info"),
+                relevant_urls=[]
+            )
+
         target_domain = llm_response.get("proposed_domain")
         chat_history_manager.set_query_domain(session_id, target_domain) # update query domain
 
-        if not is_allowed:
+        if not is_allowed or is_ambiguous:
             return IntentResult(
                 standalone_query=raw_query,
                 selected_domain="",
                 is_allowed=False,
                 relevant_urls=[]
             )
-        
         
         if history_str != "No previous history.":
             standalone_query: str = llm_responder.rewrite_query(history_str, raw_query)
