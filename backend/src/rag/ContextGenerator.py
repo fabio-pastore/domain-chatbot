@@ -9,6 +9,6 @@ class ContextGenerator:
             extracted_chunks: A list of text chunks to be joined into a single string.
 
         Returns:
-            A single string containing all the chunks joined by newline characters.
+            A single string containing all the chunks joined by newline characters and a separator.
         """
-        return "\n".join(chunk for chunk in extracted_chunks)
+        return "\n---\n".join(chunk for chunk in extracted_chunks)

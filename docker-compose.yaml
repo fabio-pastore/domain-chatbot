@@ -11,7 +11,7 @@ services:
       - PYTHONUNBUFFERED=1
       - OLLAMA_LLM_URL=http://ollama-llm:11434/api/generate
       - OLLAMA_LLM_MODEL=ministral-3:3b
-      - OLLAMA_EMBEDDING_URL=http://ollama-embed:11434/api/embeddings
+      - OLLAMA_EMBEDDING_URL=http://ollama-embed:11434/api/embed
       - OLLAMA_EMBEDDING_MODEL=nomic-embed-text
     depends_on:
       ollama-init:

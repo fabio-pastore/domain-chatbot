@@ -13,6 +13,10 @@ class IntentResult(BaseModel):
     relevant_urls: list[str] = []
 
 class QueryHandler:
+
+    WIKIPEDIA_DOMAIN = "it.wikipedia.org"
+    WIKIPEDIA_SUPPLEMENTARY_LIMIT = 3  # fixed number of Wikipedia pages to always include
+
     def __init__(self):
         """
         Initializes the QueryHandler with URL retrievers.
@@ -34,7 +38,7 @@ class QueryHandler:
         """
         history_str = chat_history_manager.get_history_string(session_id)
         prev_domain: str = chat_history_manager.get_query_domain(session_id)
-        print("PREV DOMAIN:", prev_domain)
+        print(f"{{PREV DOMAIN: '{prev_domain}'}}")
         
         llm_response = llm_responder.check_guardrails(raw_query, history_str, prev_domain)
         target_domain = ""
@@ -61,17 +65,24 @@ class QueryHandler:
         relevant_urls: list[str] = []
         if is_allowed:
             search_query = standalone_query
-            search_results: list[dict[str, str]] = self.url_retriever.retrieve_relevant_urls(search_query, target_domain)
-            
+
+            # Build list of domains to search: always include the target domain,
+            # and supplement with Wikipedia if the target domain is different.
+            domains_to_search: list[str] = [target_domain]
+            if target_domain != self.WIKIPEDIA_DOMAIN:
+                domains_to_search.append(self.WIKIPEDIA_DOMAIN)
+
+            print(f"[QueryHandler] Searching across domains: {domains_to_search}")
+            search_results: list[dict[str, str]] = self.url_retriever.retrieve_from_multiple_domains(
+                search_query, domains_to_search, per_domain_limit=self.WIKIPEDIA_SUPPLEMENTARY_LIMIT
+            )
+
             if not search_results:
-                # print(f"[QueryHandler] DuckDuckGo returned 0 results for '{search_query}'. Falling back to Wikipedia...")
-                print(f"[QueryHandler] SearXNG returned 0 results for '{search_query}'. Falling back to Wikipedia OpenSearch API...")
+                print(f"[QueryHandler] SearXNG returned 0 results for '{search_query}' across all domains. Falling back to Wikipedia OpenSearch API...")
                 wiki_urls = self.wiki_retriever.retrieve_relevant_urls(search_query)
                 if wiki_urls:
                     search_results = wiki_urls
-            
-            # if search_results:
-            #    relevant_urls = llm_responder.filter_relevant_urls(standalone_query, search_results)
+
             relevant_urls = [search_result["url"] for search_result in search_results]
 
         return IntentResult(

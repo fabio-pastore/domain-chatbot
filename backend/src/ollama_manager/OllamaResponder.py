@@ -29,14 +29,17 @@ class OllamaResponder(ABC):
             "model": self.ollama_model,
             "prompt": prompt,
             "stream": False
+        } if (not embed) else {
+            "model": self.ollama_model,
+            "input": prompt, # necessary for newer "embed" endpoint
         }
         
         try:
-            response = requests.post(self.ollama_url, json=payload, timeout=30)
+            response = requests.post(self.ollama_url, json=payload, timeout=120)
             response.raise_for_status()
             data = response.json()
             if embed:
-                return data.get("embedding", []) # list[float]
+                return data.get("embeddings", []) # list[list[float]]
             else:
                 return data.get("response", "").strip()
         except requests.exceptions.RequestException as e:
