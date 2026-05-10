@@ -79,8 +79,9 @@ def chat(message: ChatInput):
             yield f"data: {json.dumps({'phase': 'status', 'content': 'Checking guardrails and intent...'})}\n\n"
             intent_result = query_handler.process_query(message.session_id, message.query)
 
-            if not intent_result.is_allowed:
-                rejection_msg = "Your query appears to be meaningless or invalid. Please ask a clear, answerable question."
+            if not intent_result.is_allowed or intent_result.is_ambiguous:
+                rejection_msg = "Your query appears to be meaningless or invalid. Please ask a clear, answerable question." if (not intent_result.is_allowed and not intent_result.is_ambiguous) \
+                                else (intent_result.requested_information) 
                 chat_history_manager.add_message(message.session_id, "user", message.query)
                 chat_history_manager.add_message(message.session_id, "assistant", rejection_msg)
                 yield f"data: {json.dumps({'phase': 'complete', 'content': rejection_msg, 'status': 'rejected'})}\n\n"
@@ -112,9 +113,16 @@ def chat(message: ChatInput):
             yield f"data: {json.dumps({'phase': 'status', 'content': 'Generating answer...'})}\n\n"
             
             full_answer = ""
+            sources_data = ""
+            sources_data = "\n\n**Fonti**:\n " + "\n".join(intent_result.relevant_urls)
+
             for token in query_handler.stream_answer_query(message.session_id, intent_result.standalone_query, query_context_data):
                 full_answer += token
                 yield f"data: {json.dumps({'phase': 'token', 'content': token})}\n\n"
+
+            if not ("Mi dispiace, ma non ho abbastanza informazioni" in full_answer or "I'm sorry, but I do not have" in full_answer):
+                full_answer += sources_data
+                yield f"data: {json.dumps({'phase': 'token', 'content': sources_data})}\n\n"
 
             chat_history_manager.add_message(message.session_id, "user", message.query)
             chat_history_manager.add_message(message.session_id, "assistant", full_answer)
