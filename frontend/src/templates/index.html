@@ -147,11 +147,7 @@
     <aside id="sidebar" class="w-[280px] bg-white border-r border-gray-100 flex flex-col shrink-0 transition-transform duration-300 z-30 shadow-[4px_0_24px_rgba(0,0,0,0.02)] absolute inset-y-0 left-0 -translate-x-full md:relative md:translate-x-0 h-full">
         <!-- Brand -->
         <div class="h-16 flex items-center px-6 border-b border-gray-50 shrink-0">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-sapienza to-sapienza-light flex items-center justify-center shadow-lg shadow-sapienza/20 mr-3">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                </svg>
-            </div>
+            <img src="{{ url_for('assets', path='assets/sapienza_logo.png') }}" alt="Sapienza Logo" class="w-8 h-8 object-contain mr-3 rounded-xl shadow-sm bg-sapienza">
             <span class="text-lg font-bold tracking-wide text-gray-900">Sapienza AI</span>
             <!-- Close sidebar btn (mobile) -->
             <button id="btn-close-sidebar" class="md:hidden ml-auto p-2 rounded-md text-gray-400 hover:bg-gray-100">
@@ -181,8 +177,8 @@
         <!-- Footer -->
         <div class="p-4 bg-gray-50/80 border-t border-gray-100 flex items-center justify-center gap-2 text-[11px] font-semibold text-gray-500 uppercase tracking-wider shrink-0">
             <span class="relative flex h-2 w-2">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sapienza opacity-60"></span>
-              <span class="relative inline-flex rounded-full h-2 w-2 bg-sapienza"></span>
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-60"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
             RAG System Online
         </div>
@@ -203,12 +199,9 @@
             </div>
             
             <div class="flex items-center gap-3">
-                <a href="#" class="text-xs font-semibold text-sapienza bg-sapienza/10 px-2.5 py-1.5 rounded-md hover:bg-sapienza/15 transition-colors hidden sm:block">Knowledge Base</a>
-                <div class="w-8 h-8 rounded-full bg-gray-200 border-2 border-white shadow-sm overflow-hidden">
-                    <!-- User avatar placeholder -->
-                    <svg class="w-full h-full text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
+                <a href="#" class="text-xs font-semibold text-sapienza bg-sapienza/10 px-2.5 py-1.5 rounded-lg hover:bg-sapienza/15 transition-colors hidden sm:block">Sapienza-DC-Beta</a>
+                <div class="w-8 h-8 rounded-full border-2 border-white shadow-sm overflow-hidden bg-sapienza">
+                    <img src="{{ url_for('assets', path='assets/sapienza_logo.png') }}" alt="User" class="w-full h-full object-contain">
                 </div>
             </div>
         </header>
@@ -405,11 +398,7 @@
             wrapper.className = "flex gap-4 justify-start max-w-4xl mx-auto animate-msg-appear w-full";
             
             wrapper.innerHTML = `
-                <div class="w-9 h-9 rounded-xl bg-sapienza flex items-center justify-center shrink-0 mt-1 shadow-md shadow-sapienza/20">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"/>
-                    </svg>
-                </div>
+                <img src="{{ url_for('assets', path='assets/sapienza_logo.png') }}" class="w-9 h-9 rounded-full shrink-0 mt-1 shadow-md object-contain bg-sapienza" alt="Bot Logo">
                 <div class="flex-1 min-w-0">
                     <div class="status-indicator mb-3 inline-flex items-center gap-2 bg-sapienza/5 border border-sapienza/10 px-3.5 py-1.5 rounded-full shadow-sm">
                         <div class="flex gap-1 items-center justify-center">
@@ -436,11 +425,7 @@
             } else {
                 const html = marked.parse(content);
                 wrapper.innerHTML = `
-                    <div class="w-9 h-9 rounded-xl bg-sapienza flex items-center justify-center shrink-0 mt-1 shadow-md shadow-sapienza/20">
-                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"/>
-                        </svg>
-                    </div>
+                    <img src="{{ url_for('assets', path='assets/sapienza_logo.png') }}" class="w-9 h-9 rounded-full shrink-0 mt-1 shadow-md object-contain bg-sapienza" alt="Bot Logo">
                     <div class="flex-1 min-w-0">
                         <div class="msg-assistant p-5 sm:p-6 rounded-2xl rounded-tl-sm text-gray-800 text-[15px] leading-relaxed prose-chat shadow-sm">${html}</div>
                     </div>`;
