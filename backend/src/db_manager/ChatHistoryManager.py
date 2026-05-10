@@ -57,6 +57,14 @@ class ChatHistoryManager:
                 FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE CASCADE
             )
         """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS parsed_urls (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                url TEXT NOT NULL,
+                parsed_text LONGTEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         cur.close()
 
     def create_session(self, session_id: str | None = None, title: str = "New Chat") -> str:
@@ -87,6 +95,30 @@ class ChatHistoryManager:
             }
             for row in rows
         ]
+    
+    def clear_all_url_cache(self):
+        """
+        Clears all records from the parsed_urls table and resets the auto-increment ID.
+        """
+        query = "TRUNCATE TABLE parsed_urls"
+        
+        cur = self._get_cursor()
+        
+        try:
+            cur.execute(query)
+            
+            # commit the transaction
+            cur.connection.commit()
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error clearing parsed_urls table: {e}")
+            cur.connection.rollback()
+            return False
+            
+        finally:
+            cur.close()
 
     def delete_session(self, session_id: str) -> bool:
         """Delete a session and all its messages."""
@@ -177,6 +209,52 @@ class ChatHistoryManager:
         row = cur.fetchone()
         cur.close()
         return row[0] if row and row[0] else ""
+    
+    def get_parsed_text(self, url):
+        """
+        Checks if a parsed text exists for a given URL and returns it.
+        Returns None if the URL is not found.
+        """
+        
+        # prevent sql injection through parameterized query
+        query = "SELECT parsed_text FROM parsed_urls WHERE url = %s LIMIT 1"
+        
+        cur = self._get_cursor()
+        
+        try:
+            cur.execute(query, (url,))
+            result = cur.fetchone()
+            
+            if result:
+                return result[0]
+            
+            return None
+            
+        finally:
+            cur.close()
+
+    def save_parsed_text(self, url, parsed_text):
+        """
+        Saves the parsed text for a given URL into the database.
+        """
+        query = "INSERT INTO parsed_urls (url, parsed_text) VALUES (%s, %s)"
+        
+        cur = self._get_cursor()
+        
+        try:
+            cur.execute(query, (url, parsed_text))
+            
+            cur.connection.commit() 
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error saving parsed text for {url}: {e}")
+            cur.connection.rollback() # rollback in case of error
+            return False
+            
+        finally:
+            cur.close()
 
 
 chat_history_manager = ChatHistoryManager()

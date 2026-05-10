@@ -24,9 +24,11 @@ class ChatInput(BaseModel):
     Attributes:
         session_id: Unique identifier for the chat session.
         query: User's input query.
+        always_search: Flag to force searching online instead of using cache.
     """
     session_id: str
     query: str
+    always_search: bool = False # if set to True then use cached page parses stored in DB
 
 
 class ChatOutput(BaseModel):
@@ -87,20 +89,30 @@ def chat(message: ChatInput):
                 yield f"data: {json.dumps({'phase': 'complete', 'content': rejection_msg, 'status': 'rejected'})}\n\n"
                 return
 
-            yield f"data: {json.dumps({'phase': 'status', 'content': f'Searching... Found {len(intent_result.relevant_urls)} sources.'})}\n\n"
+            yield f"data: {json.dumps({'phase': 'status', 'content': f'Searching... found {len(intent_result.relevant_urls)} sources.'})}\n\n"
             
             extracted_contents = []
             parsed_content = []
             
             for url in intent_result.relevant_urls:
                 if MWPClient.is_domain_supported(url):
-                    yield f"data: {json.dumps({'phase': 'status', 'content': f'Reading websites...'})}\n\n"
-                    parsed_text = MWPClient.parse_url(url)
+                    yield f"data: {json.dumps({'phase': 'status', 'content': f'Extracting data from sources...'})}\n\n"
+                    parsed_text: str = ""
+                    cached_text: str | None = None 
+                    if (not message.always_search):
+                        cached_text: str = chat_history_manager.get_parsed_text(url) # check for already parsed url to speed up llm answer
+                    if cached_text is None:
+                        parsed_text = MWPClient.parse_url(url)
+                        if (not message.always_search): # cache parsing in DB
+                            chat_history_manager.save_parsed_text(url, parsed_text) 
+                    elif cached_text:
+                        parsed_text = cached_text
+
                     if parsed_text:
                         parsed_content.append((url, parsed_text))
                         extracted_contents.append({"url": url, "content_preview": parsed_text[:300] + "..."})
 
-            yield f"data: {json.dumps({'phase': 'status', 'content': 'Reading and selecting relevant chunks...'})}\n\n"
+            yield f"data: {json.dumps({'phase': 'status', 'content': 'Assessing and selecting relevant information...'})}\n\n"
             rag_data = ChunkSelector.select_relevant_chunks(
                 query=intent_result.standalone_query, parsed_pages=parsed_content
             )
@@ -155,6 +167,14 @@ def get_session_messages(session_id: str):
         raise HTTPException(status_code=404, detail="Session not found")
     return chat_history_manager.get_history(session_id)
 
+# used for internal testing
+@app.delete("/clear_cache")
+def clear_cache() -> None:
+    """Deletes all stored URL parsed texts from DB"""
+    cleared = chat_history_manager.clear_all_url_cache()
+    if not cleared:
+        raise HTTPException(status_code=404, detail="Failed to clear parsed URLs cache")
+    return {"status": "cleared"}
 
 @app.delete("/sessions/{session_id}")
 def delete_session(session_id: str):
