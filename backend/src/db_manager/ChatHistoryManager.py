@@ -95,6 +95,30 @@ class ChatHistoryManager:
             }
             for row in rows
         ]
+    
+    def clear_all_url_cache(self):
+        """
+        Clears all records from the parsed_urls table and resets the auto-increment ID.
+        """
+        query = "TRUNCATE TABLE parsed_urls"
+        
+        cur = self._get_cursor()
+        
+        try:
+            cur.execute(query)
+            
+            # commit the transaction
+            cur.connection.commit()
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error clearing parsed_urls table: {e}")
+            cur.connection.rollback()
+            return False
+            
+        finally:
+            cur.close()
 
     def delete_session(self, session_id: str) -> bool:
         """Delete a session and all its messages."""

@@ -1,10 +1,6 @@
 use_default_settings:
   engines:
     keep_only:
-          - google
-          - bing
-          - duckduckgo
-          - wikipedia
           - qwant
 server:
   base_url: http://localhost:8080/

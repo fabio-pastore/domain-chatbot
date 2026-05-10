@@ -17,12 +17,12 @@ class QueryHandler:
 
     WIKIPEDIA_DOMAIN = "it.wikipedia.org"
     WIKIPEDIA_SUPPLEMENTARY_LIMIT = 3  # fixed number of Wikipedia pages to always include
+    WIKIPEDIA_ONLY_MAX_URLS = 5
 
     def __init__(self):
         """
         Initializes the QueryHandler with URL retrievers.
         """
-        # self.url_retriever = DuckDuckGoUrlRetriever(max_results=5)
         self.url_retriever = SearxngUrlRetriever()
         self.wiki_retriever = WikipediaUrlRetriever()
 
@@ -86,7 +86,8 @@ class QueryHandler:
 
             print(f"[QueryHandler] Searching across domains: {domains_to_search}")
             search_results: list[dict[str, str]] = self.url_retriever.retrieve_from_multiple_domains(
-                search_query, domains_to_search, per_domain_limit=self.WIKIPEDIA_SUPPLEMENTARY_LIMIT
+                search_query, domains_to_search, per_domain_limit=(self.WIKIPEDIA_SUPPLEMENTARY_LIMIT if (len(domains_to_search) > 1) else self.WIKIPEDIA_ONLY_MAX_URLS) 
+                # if we are getting data from wikipedia only increase selected urls to 5
             )
 
             if not search_results:
