@@ -222,19 +222,19 @@
                     </div>
                     <h1 class="text-3xl font-bold text-gray-900 mb-3 tracking-tight">How can I help you today?</h1>
                     <p class="text-gray-500 max-w-lg text-[15px] leading-relaxed">
-                        Access the university knowledge base. Ask questions, explore documents, and get intelligent answers powered by specialized RAG architecture.
+                        Access the our domains' knowledge base. Ask questions, explore articles, and get intelligent answers powered by our specialized RAG architecture.
                     </p>
                     
                     <div class="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl w-full">
                         <button class="suggest-btn text-left p-4 rounded-2xl border border-gray-200 bg-white hover:border-sapienza/40 hover:shadow-lg hover:shadow-sapienza/5 transition-all group relative overflow-hidden">
                             <div class="absolute top-0 left-0 w-1 h-full bg-sapienza opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            <div class="text-sm font-bold text-gray-800 mb-1 group-hover:text-sapienza transition-colors">Admissions Guide</div>
-                            <div class="text-[13px] text-gray-500 font-medium">What are the requirements for international students?</div>
+                            <div class="text-sm font-bold text-gray-800 mb-1 group-hover:text-sapienza transition-colors">Space and astronomy</div>
+                            <div class="text-[13px] text-gray-500 font-medium">How did the solar system form?</div>
                         </button>
                         <button class="suggest-btn text-left p-4 rounded-2xl border border-gray-200 bg-white hover:border-sapienza/40 hover:shadow-lg hover:shadow-sapienza/5 transition-all group relative overflow-hidden">
                             <div class="absolute top-0 left-0 w-1 h-full bg-sapienza opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            <div class="text-sm font-bold text-gray-800 mb-1 group-hover:text-sapienza transition-colors">Course Catalog</div>
-                            <div class="text-[13px] text-gray-500 font-medium">Find master's degrees in computer science.</div>
+                            <div class="text-sm font-bold text-gray-800 mb-1 group-hover:text-sapienza transition-colors">Access the latest surveys</div>
+                            <div class="text-[13px] text-gray-500 font-medium">What is the world's opinion on the US-Iran conflict?</div>
                         </button>
                     </div>
                 </div>
@@ -266,8 +266,13 @@
                             </button>
                         </div>
                     </div>
-                    <div class="text-center mt-3 mb-1">
-                        <span class="text-[11px] text-gray-400 font-semibold tracking-wide">AI-generated content. Please verify important information independently.</span>
+
+                    <div class="flex items-center justify-between mt-3 mb-1 px-2">
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input type="checkbox" id="always-search" class="w-4 h-4 rounded border-gray-300 text-sapienza focus:ring-sapienza transition-colors cursor-pointer accent-sapienza">
+                            <span class="text-[12px] text-gray-500 font-semibold tracking-wide group-hover:text-sapienza transition-colors">Always search for updated information</span>
+                        </label>
+                        <span class="text-[11px] text-gray-400 font-semibold tracking-wide hidden sm:block">AI-generated content. Please verify important information.</span>
                     </div>
                 </form>
             </div>
@@ -288,6 +293,7 @@
         const chatForm         = document.getElementById("chat-form");
         const chatInput        = document.getElementById("chat-input");
         const btnSend          = document.getElementById("btn-send");
+        const alwaysSearchCb   = document.getElementById("always-search");
         const btnNewChat       = document.getElementById("btn-new-chat");
         const chatTitle        = document.getElementById("chat-title");
         const container        = document.getElementById("messages-container");
@@ -501,7 +507,11 @@
                 const resp = await fetch("/api/chat", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ session_id: currentSessionId, query: text }),
+                    body: JSON.stringify({ 
+                        session_id: currentSessionId, 
+                        query: text,
+                        always_search: alwaysSearchCb.checked
+                    }),
                 });
                 
                 if (!resp.ok) throw new Error("HTTP error " + resp.status);
