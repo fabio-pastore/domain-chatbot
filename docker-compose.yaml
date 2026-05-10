@@ -17,6 +17,7 @@ services:
       - MARIADB_USER=${MARIADB_USER}
       - MARIADB_PASSWORD=${MARIADB_PASSWORD}
       - MARIADB_DATABASE=${MARIADB_DATABASE}
+      - USE_GPU=false
     depends_on:
       ollama-init:
         condition: service_completed_successfully
@@ -88,13 +89,6 @@ services:
       - "11434:11434"
     volumes:
       - ollama_llm_data:/root/.ollama
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
 
   ollama-init:
     image: alpine:latest

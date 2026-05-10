@@ -88,7 +88,9 @@ class ChunkSelector:
         pairs = [[query, chunk_text] for _, chunk_text, _ in candidates]
         
         # Predict relevance scores
+        print("[ChunkSelector] | [INFO] Started chunk cross-encoding...")
         scores = cls._reranker.predict(pairs)
+        print("[ChunkSelector] | [INFO] Chunk cross-encoding completed successfully.")
         
         # Combine original data with new scores
         reranked_candidates = []

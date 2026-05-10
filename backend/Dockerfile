@@ -1,34 +1,44 @@
-FROM python:3.12-slim
+# Use the official NVIDIA CUDA 12.4.1 + cuDNN image (Ubuntu 22.04 base)
+FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
 
 WORKDIR /app
 
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    software-properties-common \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN add-apt-repository ppa:deadsnakes/ppa -y && \
+    apt-get update && apt-get install -y --no-install-recommends \
+    python3.12 \
+    python3.12-dev \
+    python3.12-venv \
     gcc \
     libmariadb-dev \
     && rm -rf /var/lib/apt/lists/*
 
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.12
+
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.12 1 && \
+    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
+
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt
 
 # Pre-download the models weights (~150MB + ~100MB)
 RUN python -c "from sentence_transformers import CrossEncoder; CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')"
-RUN python -c "from fastembed import TextEmbedding; from fastembed.common.model_description import PoolingType, ModelSource; TextEmbedding.add_custom_model( \
-    model='intfloat/multilingual-e5-small', \
-    pooling=PoolingType.MEAN, \
-    normalization=True, \
-    sources=ModelSource(hf='intfloat/multilingual-e5-small'), \
-    dim=384, \
-    model_file='onnx/model.onnx' \
-); TextEmbedding(model_name='intfloat/multilingual-e5-small')" 
 
 RUN apt-mark manual libmariadb3 2>/dev/null; \
-    apt-get purge -y gcc && \
+    apt-get purge -y gcc python3.12-dev software-properties-common && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
 
 COPY . .
-
-ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8001
 
