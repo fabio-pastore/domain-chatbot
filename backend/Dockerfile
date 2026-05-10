@@ -11,8 +11,15 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Pre-download the models weights (~150MB + ~100MB)
-RUN python -c "from fastembed import TextEmbedding; TextEmbedding(model_name='intfloat/multilingual-e5-small'); \
-               from sentence_transformers import CrossEncoder; CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')"
+RUN python -c "from sentence_transformers import CrossEncoder; CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')"
+RUN python -c "from fastembed import TextEmbedding; from fastembed.common.model_description import PoolingType, ModelSource; TextEmbedding.add_custom_model( \
+    model='intfloat/multilingual-e5-small', \
+    pooling=PoolingType.MEAN, \
+    normalization=True, \
+    sources=ModelSource(hf='intfloat/multilingual-e5-small'), \
+    dim=384, \
+    model_file='onnx/model.onnx' \
+); TextEmbedding(model_name='intfloat/multilingual-e5-small')" 
 
 RUN apt-mark manual libmariadb3 2>/dev/null; \
     apt-get purge -y gcc && \

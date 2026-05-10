@@ -9,3 +9,4 @@ mariadb
 jinja2
 sentence-transformers
 langchain-text-splitters
+fastembed

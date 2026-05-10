@@ -1,5 +1,16 @@
 from fastembed import TextEmbedding
+'''
+from fastembed.common.model_description import PoolingType, ModelSource
 
+TextEmbedding.add_custom_model(
+    model="intfloat/multilingual-e5-small",
+    pooling=PoolingType.MEAN,
+    normalization=True,
+    sources=ModelSource(hf="intfloat/multilingual-e5-small"),  # can be used with an `url` to load files from a private storage
+    dim=384,
+    model_file="onnx/model.onnx",  # can be used to load an already supported model with another optimization or quantization, e.g. onnx/model_O4.onnx
+)
+'''
 
 class TextEmbedder:
 
@@ -27,7 +38,7 @@ class TextEmbedder:
         )
         """
 
-        embeddings_list: list[list[float]] = list(embeddings_generator)
+        embeddings_list: list[list[float]] = [embedding.tolist() for embedding in embeddings_generator]
         """every single vector is forced into RAM if we use list(), this is fine in our case since we are working with small inputs (around 250'000 characters)
         problematic if we were working with large inputs (500,000+ individual chunks) or large embed models"""
 
