@@ -6,7 +6,6 @@ from src.db_manager.ChatHistoryManager import chat_history_manager
 from src.rag.MWPClient import MWPClient
 from src.rag.ChunkSelector import ChunkSelector
 from src.rag.ContextGenerator import ContextGenerator
-from src.rag.TextEmbedder import TextEmbedder
 
 app = FastAPI()
 

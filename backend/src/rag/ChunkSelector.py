@@ -88,7 +88,9 @@ class ChunkSelector:
         pairs = [[query, chunk_text] for _, chunk_text, _ in candidates]
         
         # Predict relevance scores
+        print("[ChunkSelector] | [INFO] Started chunk cross-encoding...")
         scores = cls._reranker.predict(pairs)
+        print("[ChunkSelector] | [INFO] Chunk cross-encoding completed successfully.")
         
         # Combine original data with new scores
         reranked_candidates = []
@@ -107,7 +109,7 @@ class ChunkSelector:
         Selects relevant chunks globally based on cosine similarity, re-ranks them, 
         and packs them into the maximum context window.
         """
-        query_vector: list[float] = TextEmbedder.embed_batch([query])
+        query_vector: list[float] = TextEmbedder.embed_batch([query], query=True)[0]
         
         all_candidates: list[tuple[str, str]] = []
         
@@ -122,12 +124,12 @@ class ChunkSelector:
             return {}
 
         chunk_texts = [candidate[1] for candidate in all_candidates]
-        chunk_vectors: list[list[float]] = TextEmbedder.embed_batch(chunk_texts)
+        chunk_vectors: list[list[float]] = TextEmbedder.embed_batch(chunk_texts, query=False)
 
         chunk_scores: list[tuple[str, str, float]] = []
         
         '''
-        Bi-Encoder to prelinarly rank the numerous chunks, followed by Cross-Encoder to accurately rerank the top k chunks.
+        Bi-Encoder to preliminarly rank the numerous chunks, followed by Cross-Encoder to accurately rerank the top k chunks.
         '''
         
         for (url, chunk_text), c_vec in zip(all_candidates, chunk_vectors):

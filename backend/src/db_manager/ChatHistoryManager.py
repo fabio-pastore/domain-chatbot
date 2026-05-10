@@ -4,7 +4,6 @@ from datetime import datetime
 
 import mariadb
 
-
 class ChatHistoryManager:
     """
     Manages chat history for users based on session id.
@@ -31,7 +30,7 @@ class ChatHistoryManager:
     def _get_cursor(self):
         """Get a cursor, reconnecting if the connection is stale."""
         try:
-            self._conn.ping()
+            self._conn.ping(reconnect=True)
         except Exception:
             self._connect()
         return self._conn.cursor()
@@ -255,6 +254,5 @@ class ChatHistoryManager:
             
         finally:
             cur.close()
-
 
 chat_history_manager = ChatHistoryManager()

@@ -12,13 +12,12 @@ services:
       - PYTHONUNBUFFERED=1
       - OLLAMA_LLM_URL=http://ollama-llm:11434/api/generate
       - OLLAMA_LLM_MODEL=ministral-3:3b
-      - OLLAMA_EMBEDDING_URL=http://ollama-embed:11434/api/embed
-      - OLLAMA_EMBEDDING_MODEL=nomic-embed-text
       - MARIADB_HOST=mariadb
       - MARIADB_PORT=3306
       - MARIADB_USER=${MARIADB_USER}
       - MARIADB_PASSWORD=${MARIADB_PASSWORD}
       - MARIADB_DATABASE=${MARIADB_DATABASE}
+      - USE_GPU=false
     depends_on:
       ollama-init:
         condition: service_completed_successfully
@@ -90,33 +89,11 @@ services:
       - "11434:11434"
     volumes:
       - ollama_llm_data:/root/.ollama
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-
-  ollama-embed:
-    image: ollama/ollama:latest
-    ports:
-      - "11435:11434" 
-    volumes:
-      - ollama_embed_data:/root/.ollama
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
 
   ollama-init:
     image: alpine:latest
     depends_on:
       - ollama-llm
-      - ollama-embed
     command: >
       sh -c "
         apk add --no-cache curl;
@@ -124,10 +101,6 @@ services:
         while ! curl -s http://ollama-llm:11434/api/tags > /dev/null; do sleep 2; done;
         echo 'Ollama LLM is up! Pulling ministral-3:3b (this will take a while)...';
         curl -s -X POST http://ollama-llm:11434/api/pull -d '{\"name\": \"ministral-3:3b\", \"stream\": false}';
-        echo 'Waiting for Ollama Embed to start...';
-        while ! curl -s http://ollama-embed:11434/api/tags > /dev/null; do sleep 2; done;
-        echo 'Ollama Embed is up! Pulling nomic-embed-text (this will take a while)...';
-        curl -s -X POST http://ollama-embed:11434/api/pull -d '{\"name\": \"nomic-embed-text\", \"stream\": false}';
         echo 'All models initialized successfully!';
       "
 
