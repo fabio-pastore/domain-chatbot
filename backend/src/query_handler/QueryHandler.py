@@ -2,7 +2,8 @@ from pydantic import BaseModel
 import json
 from src.db_manager.ChatHistoryManager import chat_history_manager
 from src.ollama_manager.LLMResponder import llm_responder
-from src.url_retriever.SearxngUrlRetriever import SearxngUrlRetriever
+# from src.url_retriever.SearxngUrlRetriever import SearxngUrlRetriever
+from src.url_retriever.StartpageUrlRetriever import StartpageUrlRetriever
 from src.url_retriever.WikipediaUrlRetriever import WikipediaUrlRetriever
 
 class IntentResult(BaseModel):
@@ -23,7 +24,8 @@ class QueryHandler:
         """
         Initializes the QueryHandler with URL retrievers.
         """
-        self.url_retriever = SearxngUrlRetriever()
+        # self.url_retriever = SearxngUrlRetriever()
+        self.url_retriever = StartpageUrlRetriever()
         self.wiki_retriever = WikipediaUrlRetriever()
 
     def process_query(self, session_id: str, raw_query: str) -> IntentResult:
@@ -91,7 +93,8 @@ class QueryHandler:
             )
 
             if not search_results:
-                print(f"[QueryHandler] SearXNG returned 0 results for '{search_query}' across all domains. Falling back to Wikipedia OpenSearch API...")
+                # print(f"[QueryHandler] SearXNG returned 0 results for '{search_query}' across all domains. Falling back to Wikipedia OpenSearch API...")
+                print(f"[QueryHandler] StartpageUrlRetriever returned 0 results for '{search_query}' across all domains. Falling back to Wikipedia OpenSearch API...")
                 wiki_urls = self.wiki_retriever.retrieve_relevant_urls(search_query)
                 if wiki_urls:
                     search_results = wiki_urls

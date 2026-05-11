@@ -1,6 +1,5 @@
 import requests
 import os
-
 class MWPClient:
     """
     Client to interact with the Minerva Web Parser (MWP) microservice
@@ -46,3 +45,31 @@ class MWPClient:
             print(f"[MWPClient] | [ERROR] Failed to connect to MWP: {e}")
             return None
 
+    @classmethod
+    def parse_query(cls, query: str, target_domain: str, limit: int) -> list[str]:
+        """
+        Sends the query to MWP and returns the scraped web search URLs.
+        Args:
+            query (str): The query for which to scrape URLs.
+            target_domain (str): The domain we ought to search.
+            limit (int): How many URLs to include in result output.
+
+        Returns:
+            list[str]: All scraped URLs or an empty list in case of scraping failure.
+        """
+        post_data: dict[str, str] = {
+            "query": query,
+            "target_domain": target_domain,
+            "limit": limit
+        }
+        try:
+            response = requests.post(f"{cls.MWP_BASE_URL}/get_query_results", json=post_data, timeout=60)
+            if response.status_code == 200:
+                data = response.json()
+                return data.get("scraped_urls", "")
+            else:
+                print(f"[MWPClient] | [ERROR] MWP returned status {response.status_code} for query: {query}")
+                return None
+        except requests.exceptions.RequestException as e:
+            print(f"[MWPClient] | [ERROR] Failed to connect to MWP: {e}")
+            return None

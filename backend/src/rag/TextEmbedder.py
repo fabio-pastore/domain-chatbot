@@ -47,11 +47,11 @@ class TextEmbedder:
 
         embeddings_generator = None
 
-        # optimized config for GPU, no parallel processing and large batch sizes
+        # optimized config for GPU, no parallel processing
         if (cls.use_gpu):
             embeddings_generator = cls._model.embed(
             prepared_chunks, 
-            batch_size=64, 
+            batch_size=16, # this seems to work for now, if you get any memory related errors during embedding then lower this
             parallel=None
         ) 
 
