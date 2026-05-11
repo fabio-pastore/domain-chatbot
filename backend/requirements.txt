@@ -2,7 +2,6 @@ fastapi
 uvicorn
 pydantic
 requests
-ddgs
 numpy
 regex
 mariadb
