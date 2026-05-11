@@ -39,6 +39,12 @@ class PromptBuilder:
                     </example>
                     </examples>
 
+                    <example>
+                    <chat_history></chat_history>
+                    <current_query>Hi there! Could you please tell me what the best restaurants in Rome are? Thanks!</current_query>
+                    <output>migliori ristoranti Roma</output>
+                    </example>
+
                     === CURRENT TASK ===
                     <chat_history>
                     {chat_history}
@@ -89,8 +95,8 @@ class PromptBuilder:
                     <json_schema>
                     {{
                         "status": "ALLOWED" | "AMBIGUOUS" | "REJECTED",
-                        "domain": "selected_domain_or_null"
-                        "requested_information": "question_to_user_or_null"
+                        "domain": "selected_domain_or_null",
+                        "requested_information": "question_to_user_or_null" 
                     }}
                     </json_schema>
 
@@ -106,26 +112,6 @@ class PromptBuilder:
                     </query>
                     """
         return prompt
-
-    @staticmethod
-    def build_relevance_filter_prompt(query: str, search_results: str) -> str:
-        prompt = f"""You are an expert relevance evaluator.
-                    Given a user query and a list of search results (URL + snippet), select the URLs that are most relevant and reliable to answer the query.
-                    
-                    CRITICAL INSTRUCTION: You must be extremely strict. The snippet MUST clearly indicate that the page contains the specific information requested in the query. 
-                    For example, if the query asks for 'recent car crashes in Rome' and the snippet is just about the general history of 'Rome', it is NOT relevant and must be excluded.
-                    Only select URLs that explicitly match the specific semantic intent of the query.
-                    
-                    Return ONLY a comma-separated list of the relevant URLs. Do NOT include any explanations or other text.
-                    If none of the snippets explicitly match the specific query, output EXACTLY: NONE
-                    
-                    User Query: {query}
-                    
-                    Search Results:
-                    {search_results}
-                    
-                    Relevant URLs:"""
-        return prompt
     
     @staticmethod
     def build_answer_user_query_prompt(query: str, query_context_data: str) -> str: # this took way too long. DO NOT TOUCH THIS PROMPT. OR THE WORLD WILL COLLAPSE.
@@ -136,7 +122,7 @@ class PromptBuilder:
                    - If the Question is in Italian: "Affidabilità: <comment> (<score>/5)"
                    - If the Question is in English: "Reliability: <comment> (<score>/5)"
                    The <comment> MUST briefly justify the score based on how well the reference texts support the answer. The <comment> MUST be made using natural language.
-                   The <score> MUST be an integer ranging from 0 (MINIMUM) to 5 (MAXIMUM). <score> MUST only contain a NUMBER and NO TEXT. <score> MUST ONLY be based on how well the the <reference_texts> answer the user's query and NO OTHER criteria.
+                   The <score> MUST be an integer ranging from 0 (MINIMUM) to 5 (MAXIMUM). <score> MUST only contain a NUMBER and NO TEXT. Do NOT judge the reference texts for what they lack. If your Answer is COMPLETELY BASED on the sources, you MUST give a HIGH/FULL score. If you derived something and are unsure about its reliability, lower the score.
                 2. STRICT GROUNDING: You must ONLY use facts explicitly mentioned in the <reference_texts>. If the text mentions a "trilogy" but does not name the movies, DO NOT name them. NEVER use outside knowledge.
                 3. NO META-TALK: NEVER reveal your sources. Do NOT use phrases like "according to the provided text" or "as per the reference texts" (e.g. if input language is italian, you must NOT write ANYTHING related to "testi forniti" or "riferimenti forniti" or "dati forniti")
                     nor "the provided information states." Speak as if you inherently KNOW the facts. If you need, you MAY say "according to sources" (or "basandomi sulle fonti", "come riportato dalle fonti" in italian).  
@@ -154,11 +140,20 @@ class PromptBuilder:
                 <reference_texts>
                 The Star Wars prequel trilogy was directed by George Lucas. The first movie was released in 1999.
                 </reference_texts>
-                Question: Quali film della trilogia prequel di Star Wars esistono?
-                Answer: È noto solo che il primo film della trilogia prequel è stato rilasciato nel 1999. Gli altri titoli non sono menzionati.
-                Affidabilità: Le fonti indicano l'esistenza di un primo film ma non elencano i titoli specifici richiesti dalla domanda. 2/5
+                Question: Quanto è alta la Torre Eiffel e di che colore è?
+                Answer: La Torre Eiffel, situata a Parigi, è alta 330 metri.
+                Affidabilità: L'altezza è esplicitamente confermata nel testo. Il colore non è presente nelle fonti e quindi è stato omesso dall'esposizione. (4/5)
                 </example>
-               
+
+                <example>
+                <reference_texts>
+                Jupiter is the fifth planet from the Sun and the largest in the Solar System. 
+                </reference_texts>
+                Question: Qual è il pianeta più grande del sistema solare?
+                Answer: Il pianeta più grande del sistema solare è Giove, che è anche il quinto pianeta dal Sole.
+                Affidabilità: L'affermazione è completamente supportata e tratta in modo diretto dai testi di riferimento. (5/5)
+                </example>
+
                 <example>
                 <reference_texts>
                 The Matrix is a 1999 science fiction action film written and directed by the Wachowskis.
@@ -174,7 +169,7 @@ class PromptBuilder:
 
                 Question: {query}
                 
-                REMINDER: Unless your answer IS EXACTLY the fallback string from Rule 5, you MUST append your considerations on RELIABILITY along with the given SCORE (i.e. Affidabilità: <comment> (<score>/5)" if query is in Italian).
-                          If you DO NOT know the answer to the user's query, you MUST NOT add any considerations related to "reliability" (or "affidabilità" in Italian).
+                REMINDER: Unless your answer IS EXACTLY the fallback string from Rule 5, you MUST append your considerations on RELIABILITY along with the given SCORE (i.e. Affidabilità: <comment> (<score>/5)" if query is in Italian and NOTHING else). Note that the MINIMUM score is 0 and the MAXIMUM is 5.
+                          If you DO NOT know the answer to the user's query, you MUST NOT add any considerations related to "reliability" (or "affidabilità" in Italian) nor a score.
                 Answer:"""
         return prompt

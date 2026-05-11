@@ -76,6 +76,7 @@ class QueryHandler:
         relevant_urls: list[str] = []
         if is_allowed:
             search_query = standalone_query
+            print(f"[QueryHandler] | [INFO] Initializing search for query: '{search_query}'")
 
             # Build list of domains to search: always include the target domain,
             # and supplement with Wikipedia if the target domain is different.

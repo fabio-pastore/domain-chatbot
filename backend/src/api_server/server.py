@@ -131,7 +131,7 @@ def chat(message: ChatInput):
                 full_answer += token
                 yield f"data: {json.dumps({'phase': 'token', 'content': token})}\n\n"
 
-            if not ("Mi dispiace, ma non ho abbastanza informazioni" in full_answer or "I'm sorry, but I do not have" in full_answer):
+            if not ("Mi dispiace," in full_answer or "I'm sorry," in full_answer):
                 full_answer += sources_data
                 yield f"data: {json.dumps({'phase': 'token', 'content': sources_data})}\n\n"
 
