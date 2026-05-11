@@ -21,8 +21,6 @@ services:
     depends_on:
       ollama-init:
         condition: service_completed_successfully
-      searxng:
-        condition: service_started
       mariadb:
         condition: service_healthy
 
@@ -59,29 +57,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-
-  searxng:
-      image: searxng/searxng:latest
-      container_name: searxng
-      ports:
-        - "8080:8080"
-      volumes:
-        - ./searxng:/etc/searxng:rw
-      environment:
-        - SEARXNG_SETTINGS_PATH=/etc/searxng/settings.yml
-      depends_on:
-        - redis
-      cap_drop:
-        - ALL
-      cap_add:
-        - CHOWN
-        - SETGID
-        - SETUID
-
-  redis:
-    image: redis:alpine
-    container_name: redis
-    command: redis-server --save "" --appendonly no
       
   ollama-llm:
     image: ollama/ollama:latest
