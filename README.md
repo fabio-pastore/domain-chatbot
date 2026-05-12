@@ -1,5 +1,10 @@
 # Sapienza-DC
 
+<br>
+<p align="center">
+  <img width="200" height="200" alt="sdc-logo" src="https://github.com/user-attachments/assets/ed3cf0ed-c4ef-4c29-bca9-3b35331ea00d" />
+</p>
+
 A domain-aware retrieval-augmented generation chatbot powered by a local 3B parameter large language model. Sapienza-DC answers user queries by searching across curated domains, extracting relevant content through web parsing, and generating responses with explicit reliability scoring and source attribution.
 
 ## Architecture overview
