@@ -1,6 +1,7 @@
 from src.rag.TextEmbedder import TextEmbedder
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import numpy as np
+import os
 
 class ChunkSelector:
     
@@ -9,11 +10,11 @@ class ChunkSelector:
     higher = more context but may include irrelevant info and dilute embedding vector
     '''
     __CHUNK_SIZE: int = 1000 
-    __MAX_OUTPUT_LENGTH: int = 8500 
+    __MAX_OUTPUT_LENGTH: int = int(os.getenv("MAX_OUTPUT_LENGTH", "6000"))
     __CHUNK_OVERLAP: int = 150
     __COSINE_SIMILARITY_THRESHOLD: float = 0.1 # keep this low, reranking will do the hard work
     __CROSS_ENCODING_SIMILARITY_THRESHOLD: float = 0.3
-    __TOP_K_CHUNKS: int = 20
+    __TOP_K_CHUNKS: int = int(os.getenv("TOP_K_CHUNKS", "10"))
     
     _reranker = None
 

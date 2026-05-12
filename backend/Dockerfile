@@ -1,5 +1,5 @@
-# Use the official NVIDIA CUDA 12.4.1 + cuDNN image (Ubuntu 22.04 base)
-FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
+ARG CUDA_IMAGE=runtime
+FROM nvidia/cuda:12.4.1-cudnn-${CUDA_IMAGE}-ubuntu22.04
 
 WORKDIR /app
 
@@ -17,6 +17,8 @@ RUN add-apt-repository ppa:deadsnakes/ppa -y && \
     python3.12-dev \
     python3.12-venv \
     gcc \
+    g++ \
+    libgomp1 \
     libmariadb-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -33,8 +35,20 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # Pre-download the models weights (~150MB + ~100MB)
 RUN python -c "from sentence_transformers import CrossEncoder; CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')"
 
-RUN apt-mark manual libmariadb3 2>/dev/null; \
-    apt-get purge -y gcc python3.12-dev software-properties-common && \
+# Conditionally rebuild llama-cpp-python with CUDA support
+ARG LLAMA_CUDA=OFF
+RUN if [ "$LLAMA_CUDA" = "ON" ]; then \
+        if ! command -v nvcc >/dev/null 2>&1; then \
+            echo "ERROR: LLAMA_CUDA=ON requires CUDA_IMAGE=devel" && exit 1; \
+        fi; \
+        apt-get update && apt-get install -y --no-install-recommends cmake && \
+        CMAKE_ARGS="-DLLAMA_CUDA=on" FORCE_CMAKE=1 pip install llama-cpp-python --force-reinstall --no-cache-dir && \
+        apt-get purge -y cmake && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*; \
+    fi
+
+# Purge build tools only AFTER the optional CUDA rebuild
+RUN apt-mark manual libmariadb3 libgomp1 2>/dev/null; \
+    apt-get purge -y gcc g++ python3.12-dev software-properties-common && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
 

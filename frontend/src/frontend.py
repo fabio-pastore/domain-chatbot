@@ -77,7 +77,7 @@ async def proxy_chat(request: Request):
     body = await request.json()
     
     async def stream_from_backend():
-        async with httpx.AsyncClient(timeout=120) as client:
+        async with httpx.AsyncClient(timeout=240) as client:
             async with client.stream("POST", f"{BACKEND_URL}/chat", json=body) as response:
                 async for chunk in response.aiter_bytes():
                     yield chunk

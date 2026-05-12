@@ -10,3 +10,4 @@ sentence-transformers
 langchain-text-splitters
 fastembed-gpu
 onnxruntime-gpu --extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/
+llama-cpp-python
