@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=ubuntu:22.04
+ARG BASE_IMAGE=python:3.12-slim
 FROM ${BASE_IMAGE}
 
 WORKDIR /app
@@ -6,26 +6,32 @@ WORKDIR /app
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 
+# Install base runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    software-properties-common \
     curl \
+    libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-RUN add-apt-repository ppa:deadsnakes/ppa -y && \
-    apt-get update && apt-get install -y --no-install-recommends \
-    python3.12 \
-    python3.12-dev \
-    python3.12-venv \
+# Conditionally install Python 3.12 for base images that don't have it (e.g., CUDA images)
+RUN if ! command -v python3.12 >/dev/null 2>&1; then \
+        apt-get update && apt-get install -y --no-install-recommends software-properties-common && \
+        add-apt-repository ppa:deadsnakes/ppa -y && \
+        apt-get update && apt-get install -y --no-install-recommends \
+            python3.12 \
+            python3.12-dev \
+            python3.12-venv && \
+        curl -sS https://bootstrap.pypa.io/get-pip.py | python3.12 && \
+        update-alternatives --install /usr/bin/python python /usr/bin/python3.12 1 && \
+        update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1 && \
+        rm -rf /var/lib/apt/lists/*; \
+    fi
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
-    libgomp1 \
     libmariadb-dev \
     && rm -rf /var/lib/apt/lists/*
-
-RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.12
-
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.12 1 && \
-    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
 
 ARG REQUIREMENTS_FILE=requirements-cpu.txt
 COPY ${REQUIREMENTS_FILE} requirements.txt
@@ -49,7 +55,10 @@ RUN if [ "$LLAMA_CUDA" = "ON" ]; then \
 
 # Purge build tools only AFTER the optional CUDA rebuild
 RUN apt-mark manual libmariadb3 libgomp1 2>/dev/null; \
-    apt-get purge -y gcc g++ python3.12-dev software-properties-common && \
+    apt-get purge -y gcc g++ 2>/dev/null || true; \
+    apt-get purge -y cmake 2>/dev/null || true; \
+    apt-get purge -y python3.12-dev 2>/dev/null || true; \
+    apt-get purge -y software-properties-common 2>/dev/null || true; \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
 
