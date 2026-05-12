@@ -19,7 +19,7 @@ class StartpageUrlRetriever(UrlRetriever):
 
         Args:
             search_query (str): The search query to look up.
-            target_domain (str): The domain to restrict the search to.
+            target_domain (str): The domain to restrict the search to. If domain is "*" then a generic search is performed instead of using the "site:" operator.
             max_results (int | None): Optional override for the maximum number of results.
                 Defaults to __STARTPAGE_SEARCH_RESULTS_LIMIT if not provided.
 
@@ -27,9 +27,10 @@ class StartpageUrlRetriever(UrlRetriever):
             list[dict[str, str]]: A list of dictionaries containing the URL, title, and snippet of each search result.
         """
         limit = max_results if max_results is not None else self.__STARTPAGE_SEARCH_RESULTS_LIMIT
-        filtered_query = f"{search_query} site:{target_domain}"
+        generic_search: bool = (target_domain == '*')
+        filtered_query = f"{search_query} site:{target_domain}" if (not generic_search) else f"{search_query}"
 
-        data = self.mwp_client.parse_query(filtered_query, target_domain, limit)
+        data = self.mwp_client.parse_query(filtered_query, target_domain if (not generic_search) else "*", limit)
         scraped_urls: list[str] = []
 
         if (data):
