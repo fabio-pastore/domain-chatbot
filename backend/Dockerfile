@@ -1,5 +1,5 @@
-ARG CUDA_IMAGE=runtime
-FROM nvidia/cuda:12.4.1-cudnn-${CUDA_IMAGE}-ubuntu22.04
+ARG BASE_IMAGE=ubuntu:22.04
+FROM ${BASE_IMAGE}
 
 WORKDIR /app
 
@@ -27,7 +27,8 @@ RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.12
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.12 1 && \
     update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
 
-COPY requirements.txt .
+ARG REQUIREMENTS_FILE=requirements-cpu.txt
+COPY ${REQUIREMENTS_FILE} requirements.txt
 
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -r requirements.txt
@@ -39,7 +40,7 @@ RUN python -c "from sentence_transformers import CrossEncoder; CrossEncoder('cro
 ARG LLAMA_CUDA=OFF
 RUN if [ "$LLAMA_CUDA" = "ON" ]; then \
         if ! command -v nvcc >/dev/null 2>&1; then \
-            echo "ERROR: LLAMA_CUDA=ON requires CUDA_IMAGE=devel" && exit 1; \
+            echo "ERROR: LLAMA_CUDA=ON requires a CUDA devel base image" && exit 1; \
         fi; \
         apt-get update && apt-get install -y --no-install-recommends cmake && \
         CMAKE_ARGS="-DLLAMA_CUDA=on" FORCE_CMAKE=1 pip install llama-cpp-python --force-reinstall --no-cache-dir && \
