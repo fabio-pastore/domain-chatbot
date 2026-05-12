@@ -76,6 +76,7 @@ services:
         while ! curl -s http://ollama-llm:11434/api/tags > /dev/null; do sleep 2; done;
         echo 'Ollama LLM is up! Pulling ministral-3:3b (this will take a while)...';
         curl -s -X POST http://ollama-llm:11434/api/pull -d '{\"name\": \"ministral-3:3b\", \"stream\": false}';
+        echo
         echo 'All models initialized successfully!';
       "
 

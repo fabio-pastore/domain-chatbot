@@ -81,10 +81,11 @@ class PromptBuilder:
                     2. ROUTING LOGIC: If the status is ALLOWED, determine the "domain" by strictly following this order of evaluation:
                     - Step A (Context Check): Look at the <previous_domain> and <chat_history>. If the new <query> is a follow-up or relates to the same topic, output the <previous_domain>. If you are UNSURE whether the topic has changed, heavily bias your choice toward the <previous_domain>.
                     - Step B (New Topic): If the <query> is clearly an entirely new, unrelated topic (or if <previous_domain> is empty), select from these specific domains:
-                        * "marvel.com": Comics, Marvel superheroes (Spider-Man, Iron Man, etc.), villains, MCU, and related media.
+                        * "www.marvel.com": Comics, Marvel superheroes (Spider-Man, Iron Man, etc.), villains, MCU, and related media.
                         * "www.ipsos.com": Market research, public opinion polls, statistical surveys, and consumer data.
                         * "www.raiplaysound.it": Italian radio, RAI podcasts, audio documentaries, and audio broadcasting.
-                    - Step C (Fallback): If the query does not fit Step A or Step B, default to "it.wikipedia.org" (for general knowledge, history, science, etc.).
+                        * "it.wikipedia.org": General facts concerning history, science, geography, biographies, and general knowledge.
+                    - Step C (Fallback): If the query does not fit Step A or Step B, default to "*" (use this indicator for niche information, breaking news, cooking recipes, local business searches, troubleshooting, or any other type of information that may not be found on the specific domains listed above).
 
                     *Note: If status is REJECTED or AMBIGUOUS, set the domain to null.*
                     *Note: If status is AMBIGUOUS, you MUST set the requested_information field to be a string in which you ask further information to the user (in the SAME LANGUAGE as the query)*
@@ -122,7 +123,7 @@ class PromptBuilder:
                    - If the Question is in Italian: "Affidabilità: <comment> (<score>/5)"
                    - If the Question is in English: "Reliability: <comment> (<score>/5)"
                    The <comment> MUST briefly justify the score based on how well the reference texts support the answer. The <comment> MUST be made using natural language.
-                   The <score> MUST be an integer ranging from 0 (MINIMUM) to 5 (MAXIMUM). <score> MUST only contain a NUMBER and NO TEXT. Do NOT judge the reference texts for what they lack. If your Answer is COMPLETELY BASED on the sources, you MUST give a HIGH/FULL score. If you derived something and are unsure about its reliability, lower the score.
+                   The <score> MUST be an integer ranging from 1 (MINIMUM) to 5 (MAXIMUM). <score> MUST only contain a NUMBER and NO TEXT. Do NOT judge the reference texts for what they lack. If your Answer is COMPLETELY BASED on the sources, you MUST give a HIGH/FULL score. If you derived something and are unsure about its reliability, lower the score (assign a score ranging from 1 to 3 in this case)-
                 2. STRICT GROUNDING: You must ONLY use facts explicitly mentioned in the <reference_texts>. If the text mentions a "trilogy" but does not name the movies, DO NOT name them. NEVER use outside knowledge.
                 3. NO META-TALK: NEVER reveal your sources. Do NOT use phrases like "according to the provided text" or "as per the reference texts" (e.g. if input language is italian, you must NOT write ANYTHING related to "testi forniti" or "riferimenti forniti" or "dati forniti")
                     nor "the provided information states." Speak as if you inherently KNOW the facts. If you need, you MAY say "according to sources" (or "basandomi sulle fonti", "come riportato dalle fonti" in italian).  
@@ -169,7 +170,7 @@ class PromptBuilder:
 
                 Question: {query}
                 
-                REMINDER: Unless your answer IS EXACTLY the fallback string from Rule 5, you MUST append your considerations on RELIABILITY along with the given SCORE (i.e. Affidabilità: <comment> (<score>/5)" if query is in Italian and NOTHING else). Note that the MINIMUM score is 0 and the MAXIMUM is 5.
+                REMINDER: Unless your answer IS EXACTLY the fallback string from Rule 5, you MUST append your considerations on RELIABILITY along with the given SCORE (i.e. Affidabilità: <comment> (<score>/5)" if query is in Italian and NOTHING else). Note that the MINIMUM score is 1 and the MAXIMUM is 5.
                           If you DO NOT know the answer to the user's query, you MUST NOT add any considerations related to "reliability" (or "affidabilità" in Italian) nor a score.
                 Answer:"""
         return prompt

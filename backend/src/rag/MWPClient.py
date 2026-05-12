@@ -24,17 +24,19 @@ class MWPClient:
         return False
 
     @classmethod
-    def parse_url(cls, url: str) -> str | None:
+    def parse_url(cls, url: str, generic_domain: bool = False) -> str | None:
         """
         Sends the URL to MWP and returns the extracted Markdown content.
         Args:
             url (str): The URL to parse.
+            generic_domain (bool): A boolean indicating whether the target domain is unknown and a generic parse method should be used.
+                                   Defaults to False.
 
         Returns:
             str | None: The extracted Markdown content if successful, None otherwise.
         """
         try:
-            response = requests.get(f"{cls.MWP_BASE_URL}/parse", params={"url": url}, timeout=60)
+            response = requests.get(f"{cls.MWP_BASE_URL}/parse" if (not generic_domain) else f"{cls.MWP_BASE_URL}/generic_parse", params={"url": url}, timeout=60)
             if response.status_code == 200:
                 data = response.json()
                 return data.get("parsed_text", "")

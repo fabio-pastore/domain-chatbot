@@ -94,22 +94,22 @@ def chat(message: ChatInput):
             parsed_content = []
             
             for url in intent_result.relevant_urls:
-                if MWPClient.is_domain_supported(url):
-                    yield f"data: {json.dumps({'phase': 'status', 'content': f'Extracting data from sources...'})}\n\n"
-                    parsed_text: str = ""
-                    cached_text: str | None = None 
-                    if (not message.always_search):
-                        cached_text: str = chat_history_manager.get_parsed_text(url) # check for already parsed url to speed up llm answer
-                    if cached_text is None:
-                        parsed_text = MWPClient.parse_url(url)
-                        if (not message.always_search): # cache parsing in DB
-                            chat_history_manager.save_parsed_text(url, parsed_text) 
-                    elif cached_text:
-                        parsed_text = cached_text
+                is_supported_domain: bool = MWPClient.is_domain_supported(url)
+                yield f"data: {json.dumps({'phase': 'status', 'content': f'Extracting data from sources...'})}\n\n"
+                parsed_text: str = ""
+                cached_text: str | None = None 
+                if (not message.always_search):
+                    cached_text: str = chat_history_manager.get_parsed_text(url) # check for already parsed url to speed up llm answer
+                if cached_text is None:
+                    parsed_text = MWPClient.parse_url(url, generic_domain=(not is_supported_domain))
+                    if (not message.always_search): # cache parsing in DB
+                        chat_history_manager.save_parsed_text(url, parsed_text) 
+                elif cached_text:
+                    parsed_text = cached_text
 
-                    if parsed_text:
-                        parsed_content.append((url, parsed_text))
-                        extracted_contents.append({"url": url, "content_preview": parsed_text[:300] + "..."})
+                if parsed_text:
+                    parsed_content.append((url, parsed_text))
+                    extracted_contents.append({"url": url, "content_preview": parsed_text[:300] + "..."})
 
             yield f"data: {json.dumps({'phase': 'status', 'content': 'Assessing and selecting relevant information...'})}\n\n"
             rag_data = ChunkSelector.select_relevant_chunks(
