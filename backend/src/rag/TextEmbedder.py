@@ -47,15 +47,14 @@ class TextEmbedder:
 
         embeddings_generator = None
 
-        # optimized config for GPU, no parallel processing
-        if (cls.use_gpu):
-            embeddings_generator = cls._model.embed(
-            prepared_chunks, 
-            batch_size=16, # this seems to work for now, if you get any memory related errors during embedding then lower this
+        # parallel MUST be None because fastembed's parallel processor spawns
+        # separate workers that do not inherit custom models registered via
+        # TextEmbedding.add_custom_model() in the parent process.
+        embeddings_generator = cls._model.embed(
+            prepared_chunks,
+            batch_size=16,
             parallel=None
-        ) 
-
-        else: embeddings_generator = cls._model.embed(prepared_chunks) # this uses all CPU cores by default and processes 256 batches at a time
+        )
         
         """
         to customize:

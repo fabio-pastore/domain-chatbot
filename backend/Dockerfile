@@ -1,40 +1,75 @@
-# Use the official NVIDIA CUDA 12.4.1 + cuDNN image (Ubuntu 22.04 base)
-FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
+ARG BASE_IMAGE=python:3.12-slim
+FROM ${BASE_IMAGE}
 
 WORKDIR /app
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 
+# Install base runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    software-properties-common \
     curl \
+    libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-RUN add-apt-repository ppa:deadsnakes/ppa -y && \
-    apt-get update && apt-get install -y --no-install-recommends \
-    python3.12 \
-    python3.12-dev \
-    python3.12-venv \
+# Conditionally install Python 3.12 for base images that don't have it (e.g., CUDA images)
+RUN if ! command -v python3.12 >/dev/null 2>&1; then \
+        apt-get update && apt-get install -y --no-install-recommends software-properties-common && \
+        add-apt-repository ppa:deadsnakes/ppa -y && \
+        apt-get update && apt-get install -y --no-install-recommends \
+            python3.12 \
+            python3.12-dev \
+            python3.12-venv && \
+        curl -sS https://bootstrap.pypa.io/get-pip.py | python3.12 && \
+        update-alternatives --install /usr/bin/python python /usr/bin/python3.12 1 && \
+        update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1 && \
+        rm -rf /var/lib/apt/lists/*; \
+    fi
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
+    g++ \
+    cmake \
     libmariadb-dev \
     && rm -rf /var/lib/apt/lists/*
 
-RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.12
+ARG REQUIREMENTS_FILE=requirements-cpu.txt
+COPY ${REQUIREMENTS_FILE} requirements.txt
 
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.12 1 && \
-    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
+ARG LLAMA_CUDA=OFF
 
-COPY requirements.txt .
+# Fix for missing libcuda.so.1 during build when using CUDA base image
+RUN if [ "$LLAMA_CUDA" = "ON" ]; then \
+        if ! command -v nvcc >/dev/null 2>&1; then \
+            echo "ERROR: LLAMA_CUDA=ON requires a CUDA devel base image" && exit 1; \
+        fi; \
+        if [ -d /usr/local/cuda/lib64/stubs ]; then \
+            ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 || true; \
+        fi; \
+    fi
 
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install -r requirements.txt
+    if [ "$LLAMA_CUDA" = "ON" ]; then \
+        LD_LIBRARY_PATH="/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH}" CMAKE_ARGS="-DGGML_CUDA=on -DLLAMA_CUDA=on" FORCE_CMAKE=1 CMAKE_BUILD_PARALLEL_LEVEL=4 MAX_JOBS=4 pip install -r requirements.txt; \
+    else \
+        CMAKE_BUILD_PARALLEL_LEVEL=4 MAX_JOBS=4 pip install -r requirements.txt; \
+    fi
+
+# Force uninstall broken PyTorch versions and sentence-transformers, force the PyTorch index, THEN install sentence-transformers (only way to fix the CUDA 13 issue)
+RUN pip uninstall -y torch torchvision torchaudio sentence-transformers && \
+    pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124 && \
+    pip install --no-cache-dir sentence-transformers
 
 # Pre-download the models weights (~150MB + ~100MB)
 RUN python -c "from sentence_transformers import CrossEncoder; CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')"
 
-RUN apt-mark manual libmariadb3 2>/dev/null; \
-    apt-get purge -y gcc python3.12-dev software-properties-common && \
+# Purge build tools
+RUN apt-mark manual libmariadb3 libgomp1 2>/dev/null; \
+    apt-get purge -y gcc g++ 2>/dev/null || true; \
+    apt-get purge -y cmake 2>/dev/null || true; \
+    apt-get purge -y python3.12-dev 2>/dev/null || true; \
+    apt-get purge -y software-properties-common 2>/dev/null || true; \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
 

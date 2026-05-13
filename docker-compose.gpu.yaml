@@ -1,20 +1,17 @@
 services:
   chatbot_backend:
+    build:
+      args:
+        BASE_IMAGE: nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
+        REQUIREMENTS_FILE: requirements.txt
+        LLAMA_CUDA: "ON"
     environment:
-      - USE_GPU=true # set env variable to true so that code can apply specific GPU configuration to text encoder
+      - USE_GPU=true
+      - LLM_N_GPU_LAYERS=-1
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
               count: all
-              capabilities: [gpu]
-
-  ollama-llm:
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
               capabilities: [gpu]

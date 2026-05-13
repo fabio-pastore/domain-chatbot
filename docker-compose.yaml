@@ -7,11 +7,17 @@ services:
       - "8001:8001"
     volumes:
       - ./backend:/app
+      - ./models:/app/models
     env_file: .env
     environment:
       - PYTHONUNBUFFERED=1
-      - OLLAMA_LLM_URL=http://ollama-llm:11434/api/generate
-      - OLLAMA_LLM_MODEL=ministral-3:3b
+      - LLM_MODEL_PATH=${LLM_MODEL_PATH}
+      - LLM_N_CTX=${LLM_N_CTX}
+      - LLM_N_THREADS=0
+      - LLM_N_GPU_LAYERS=0
+      - LLM_N_BATCH=${LLM_N_BATCH}
+      - MAX_OUTPUT_LENGTH=${MAX_OUTPUT_LENGTH}
+      - TOP_K_CHUNKS=${TOP_K_CHUNKS}
       - MARIADB_HOST=mariadb
       - MARIADB_PORT=3306
       - MARIADB_USER=${MARIADB_USER}
@@ -19,8 +25,6 @@ services:
       - MARIADB_DATABASE=${MARIADB_DATABASE}
       - USE_GPU=false
     depends_on:
-      ollama-init:
-        condition: service_completed_successfully
       mariadb:
         condition: service_healthy
 
@@ -57,30 +61,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-      
-  ollama-llm:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_llm_data:/root/.ollama
-
-  ollama-init:
-    image: alpine:latest
-    depends_on:
-      - ollama-llm
-    command: >
-      sh -c "
-        apk add --no-cache curl;
-        echo 'Waiting for Ollama LLM to start...';
-        while ! curl -s http://ollama-llm:11434/api/tags > /dev/null; do sleep 2; done;
-        echo 'Ollama LLM is up! Pulling ministral-3:3b (this will take a while)...';
-        curl -s -X POST http://ollama-llm:11434/api/pull -d '{\"name\": \"ministral-3:3b\", \"stream\": false}';
-        echo
-        echo 'All models initialized successfully!';
-      "
 
 volumes:
-  ollama_llm_data:
-  ollama_embed_data:
   mariadb_data:

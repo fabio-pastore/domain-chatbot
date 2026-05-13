@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+pydantic
+requests
+numpy
+regex
+mariadb
+jinja2
+sentence-transformers
+langchain-text-splitters
+fastembed
+onnxruntime
+llama-cpp-python
