@@ -1,6 +1,6 @@
 import os
 from abc import ABC
-from llama_cpp import Llama
+from llama_cpp import Llama # type: ignore
 
 class LlamaCppResponder(ABC):
 

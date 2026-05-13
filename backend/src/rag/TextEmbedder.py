@@ -52,7 +52,7 @@ class TextEmbedder:
         # TextEmbedding.add_custom_model() in the parent process.
         embeddings_generator = cls._model.embed(
             prepared_chunks,
-            batch_size=16,
+            batch_size=8,
             parallel=None
         )
         

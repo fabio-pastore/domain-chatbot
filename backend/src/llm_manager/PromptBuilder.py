@@ -37,13 +37,13 @@ class PromptBuilder:
                     <current_query>Which planets are there in the solar system?</current_query>
                     <output>pianeti sistema solare</output>
                     </example>
-                    </examples>
 
                     <example>
                     <chat_history></chat_history>
                     <current_query>Hi there! Could you please tell me what the best restaurants in Rome are? Thanks!</current_query>
                     <output>migliori ristoranti Roma</output>
                     </example>
+                    </examples>
 
                     === CURRENT TASK ===
                     <chat_history>
