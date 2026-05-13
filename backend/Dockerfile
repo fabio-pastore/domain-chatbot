@@ -37,24 +37,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ARG REQUIREMENTS_FILE=requirements-cpu.txt
 COPY ${REQUIREMENTS_FILE} requirements.txt
 
-ARG LLAMA_CUDA=OFF
-
-# Fix for missing libcuda.so.1 during build when using CUDA base image
-RUN if [ "$LLAMA_CUDA" = "ON" ]; then \
-        if ! command -v nvcc >/dev/null 2>&1; then \
-            echo "ERROR: LLAMA_CUDA=ON requires a CUDA devel base image" && exit 1; \
-        fi; \
-        if [ -d /usr/local/cuda/lib64/stubs ]; then \
-            ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 || true; \
-        fi; \
-    fi
-
 RUN --mount=type=cache,target=/root/.cache/pip \
-    if [ "$LLAMA_CUDA" = "ON" ]; then \
-        LD_LIBRARY_PATH="/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH}" CMAKE_ARGS="-DGGML_CUDA=on -DLLAMA_CUDA=on" FORCE_CMAKE=1 CMAKE_BUILD_PARALLEL_LEVEL=4 MAX_JOBS=4 pip install -r requirements.txt; \
-    else \
-        CMAKE_BUILD_PARALLEL_LEVEL=4 MAX_JOBS=4 pip install -r requirements.txt; \
-    fi
+    CMAKE_BUILD_PARALLEL_LEVEL=4 MAX_JOBS=4 pip install -r requirements.txt
 
 # Force uninstall broken PyTorch versions and sentence-transformers, force the PyTorch index, THEN install sentence-transformers (only way to fix the CUDA 13 issue)
 RUN pip uninstall -y torch torchvision torchaudio sentence-transformers && \
