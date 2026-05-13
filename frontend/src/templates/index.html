@@ -427,13 +427,13 @@
 
             if (role === "user") {
                 wrapper.innerHTML = `
-                    <div class="max-w-[80%] msg-user px-5 py-4 rounded-2xl rounded-tr-sm text-[15px] leading-relaxed whitespace-pre-wrap font-medium shadow-md shadow-sapienza/10">${escapeHtml(content)}</div>`;
+                    <div class="max-w-[80%] msg-user px-5 py-4 rounded-2xl rounded-tr-sm text-[15px] leading-relaxed whitespace-pre-wrap break-all font-medium shadow-md shadow-sapienza/10">${escapeHtml(content)}</div>`;
             } else {
                 const html = marked.parse(content);
                 wrapper.innerHTML = `
                     <img src="{{ url_for('assets', path='assets/sapienza_logo.png') }}" class="w-9 h-9 rounded-full shrink-0 mt-1 shadow-md object-contain bg-sapienza" alt="Bot Logo">
                     <div class="flex-1 min-w-0">
-                        <div class="msg-assistant p-5 sm:p-6 rounded-2xl rounded-tl-sm text-gray-800 text-[15px] leading-relaxed prose-chat shadow-sm">${html}</div>
+                        <div class="msg-assistant p-5 sm:p-6 rounded-2xl rounded-tl-sm text-gray-800 text-[15px] leading-relaxed prose-chat shadow-sm break-all">${html}</div>
                     </div>`;
             }
 

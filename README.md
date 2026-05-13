@@ -98,7 +98,7 @@ the system searches across a primary target domain and supplements results from 
 retrieved documents are chunked with overlap, embedded using a multilingual E5-small model (384 dimensions), and filtered by cosine similarity. The top candidates are then reranked by a cross-encoder (MS Marco MiniLM) for precise relevance scoring. This balances speed and accuracy within tight resource constraints.
 
 **Transparent reliability scoring**:
-every generated answer includes a mandatory reliability section (affidabilità). The LLM self-assesses how well the reference texts support its response, providing both a qualitative comment and an integer score from 0 to 5. The score can be used by users to gauge confidence in the generated content.
+every generated answer includes a mandatory reliability section (affidabilità). The LLM self-assesses how well the reference texts support its response, providing both a qualitative comment and an integer score from 1 to 5. The score can be used by users to gauge confidence in the generated content.
 
 **Response streaming with progress feedback**:
 server-sent events stream both status updates and answer tokens to the frontend. Users see real-time feedback during searching, data extraction, chunk selection, and answer generation phases, making latency from the local LLM more tolerable and the system behavior more transparent.

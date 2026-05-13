@@ -127,7 +127,7 @@ def chat(message: ChatInput):
             sources_data = ""
             sources_data = "\n\n**Fonti**:\n " + "\n".join(intent_result.relevant_urls)
 
-            for token in query_handler.stream_answer_query(message.session_id, intent_result.standalone_query, query_context_data):
+            for token in query_handler.stream_answer_query(message.session_id, message.query, query_context_data):
                 full_answer += token
                 yield f"data: {json.dumps({'phase': 'token', 'content': token})}\n\n"
 

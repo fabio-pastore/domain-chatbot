@@ -14,9 +14,8 @@ class IntentResult(BaseModel):
 
 class QueryHandler:
 
-    WIKIPEDIA_DOMAIN = "it.wikipedia.org"
-    WIKIPEDIA_SUPPLEMENTARY_LIMIT = 3  # fixed number of Wikipedia pages to always include
-    WIKIPEDIA_ONLY_MAX_URLS = 5
+    OTHER_DOMAINS_SUPPLEMENTARY_LIMIT = 3  # fixed number of other domain pages to include in search
+    OTHER_DOMAINS_ONLY_LIMIT = 5
 
     def __init__(self):
         """
@@ -68,10 +67,7 @@ class QueryHandler:
                 relevant_urls=[]
             )
         
-        if history_str != "No previous history.":
-            standalone_query: str = llm_responder.rewrite_query(history_str, raw_query)
-        else:
-            standalone_query: str = raw_query
+        standalone_query: str = llm_responder.rewrite_query(history_str, raw_query)
         
         relevant_urls: list[str] = []
         if is_allowed:
@@ -79,15 +75,15 @@ class QueryHandler:
             print(f"[QueryHandler] | [INFO] Initializing search for query: '{search_query}'")
 
             # Build list of domains to search: always include the target domain,
-            # and supplement with Wikipedia if the target domain is different.
+            # and supplement with other domains if the target domain is different.
             domains_to_search: list[str] = [target_domain]
-            if target_domain != self.WIKIPEDIA_DOMAIN:
-                domains_to_search.append(self.WIKIPEDIA_DOMAIN)
+            if target_domain != "*":
+                domains_to_search.append("*") # search across any domain for supplementary info
 
             print(f"[QueryHandler] Searching across domains: {domains_to_search}")
             search_results: list[dict[str, str]] = self.url_retriever.retrieve_from_multiple_domains(
-                search_query, domains_to_search, per_domain_limit=(self.WIKIPEDIA_SUPPLEMENTARY_LIMIT if (len(domains_to_search) > 1) else self.WIKIPEDIA_ONLY_MAX_URLS) 
-                # if we are getting data from wikipedia only increase selected urls to 5
+                search_query, domains_to_search, per_domain_limit=(self.OTHER_DOMAINS_SUPPLEMENTARY_LIMIT if (len(domains_to_search) > 1) else self.OTHER_DOMAINS_ONLY_LIMIT) 
+                # if we are getting data from other domains only, increase selected urls to OTHER_DOMAINS_ONLY_LIMIT
             )
 
             if not search_results:

@@ -2,15 +2,19 @@ class PromptBuilder:
     @staticmethod
     def build_query_rewrite_prompt(chat_history: str, current_query: str) -> str:
         prompt = f"""You are an expert search query optimization engine.
-                    Your task is to analyze a conversational history and a new user query, resolve any contextual references, and generate a standalone, highly concise search query translated strictly into ITALIAN.
+                    Your task is to analyze a conversational history and a new user query, resolve any contextual references, and generate a standalone, highly concise search query translated strictly into ITALIAN. DO NOT answer the user's query.
 
                     <rules>
                     1. STRICT LANGUAGE: The final output MUST be entirely in Italian, regardless of the input language.
-                    2. CONTEXT RESOLUTION: Use the <chat_history> to resolve pronouns (e.g., he, she, it, they) or implicit references in the <current_query> into explicit entities.
-                    3. KEYWORD OPTIMIZATION: Extract ONLY the essential keywords needed for a search engine. Do not write grammatically complete sentences. Strip away conversational filler, pleasantries, and unnecessary words.
-                    4. STRICT FIDELITY: Do NOT add extra attributes, conditions, filters, or details (such as years, adjectives, or locations) to the query UNLESS they are explicitly stated in the <current_query> or strictly required by the <chat_history>.
-                    5. CLEAN OUTPUT: Do not include search operators (like +, -, :, quotes). Do NOT attempt to answer the user's question.
-                    6. ZERO-CHATTER: Output absolutely nothing but the final translated string.
+                    2. CONTEXT RESOLUTION: 
+                        Use the <chat_history> to resolve pronouns (e.g., he, she, it, they) or implicit references in the <current_query> into explicit entities.
+                        However, if the <current_query> introduces a completely new topic unrelated to the <chat_history>, IGNORE the chat history entirely and generate the keywords based solely on the <current_query>.
+                    3. KEYWORD OPTIMIZATION (MAX 10 WORDS. 6 OR 7 WORDS IS OPTIMAL): Extract ONLY the essential keywords needed for a search engine. Do not write grammatically complete sentences. Strip away conversational filler, pleasantries, and unnecessary words.
+                    4. STRICT FIDELITY: Do NOT add extra attributes, conditions, filters, or details (such as years, adjectives, or locations) to the query UNLESS they are explicitly stated in the <current_query> or strictly required by the <chat_history>. Crucially, do NOT attempt to answer the user's question by guessing missing information (e.g., if the user asks "In what year...", do not guess the year; just include the word "anno").
+                    5. CLEAN OUTPUT: Output strictly raw text. Do NOT include search operators (like +, -, :, quotes), and absolutely NO Markdown formatting (like **, *, or _). 
+                    6. ZERO-CHATTER: You MUST output ONLY the final translated string, and nothing else. No prefixes, no suffixes, no explanations, and absolutely NO notes or parentheticals (e.g., do not write "Nota:"). JUST OUTPUT THE REWRITTEN SEARCH QUERY.
+
+                    *Note: the current year is 2026, you must NOT add this to the search query unless specifically told to do so!*
                     </rules>
 
                     <examples>
@@ -42,6 +46,21 @@ class PromptBuilder:
                     <chat_history></chat_history>
                     <current_query>Hi there! Could you please tell me what the best restaurants in Rome are? Thanks!</current_query>
                     <output>migliori ristoranti Roma</output>
+                    </example>
+
+                    <example>
+                    <chat_history>
+                    User: Tell me about the Eiffel Tower.
+                    AI: The Eiffel Tower is a wrought-iron lattice tower on the Champ de Mars in Paris.
+                    </chat_history>
+                    <current_query>Summarize the main causes of the fall of the Western Roman Empire.</current_query>
+                    <output>cause caduta impero romano occidente</output>
+                    </example>
+
+                    <example>
+                    <chat_history></chat_history>
+                    <current_query>In che anno l'Italia ha vinto il suo primo mondiale di calcio e chi era il capitano?</current_query>
+                    <output>anno prima vittoria mondiali calcio Italia capitano</output>
                     </example>
                     </examples>
 
@@ -116,7 +135,7 @@ class PromptBuilder:
     
     @staticmethod
     def build_answer_user_query_prompt(query: str, query_context_data: str) -> str: # this took way too long. DO NOT TOUCH THIS PROMPT. OR THE WORLD WILL COLLAPSE.
-        prompt = f"""You are a strict, factual assistant. Your ONLY source of knowledge is the <reference_texts> provided below.
+        prompt = f"""You are a strict, factual assistant. Your ONLY source of knowledge is the <reference_texts> provided below. Forget everything you've known until now.
 
                 <rules>
                 1. RELIABILITY DETERMINATION (HIGHEST PRIORITY): At the end of EVERY answer, UNLESS you are using the exact fallback string from Rule 5, you MUST add a new line containing the reliability score. This is MANDATORY and NOT OPTIONAL.
@@ -132,7 +151,7 @@ class PromptBuilder:
                    - For English: "I'm sorry, but I don't have enough information to answer this question."
                    - For Italian: "Mi dispiace, ma non ho abbastanza informazioni per rispondere a questa domanda."
                    You are STRICTLY FORBIDDEN from adding a score, comments, or the words "Affidabilità" or "Reliability" after this string.
-                6. RESPONSE FORMAT: Do not output bare facts; briefly rephrase the core of the question to make the answer self-contained.
+                6. RESPONSE FORMAT: Do not output bare facts; be concise but briefly rephrase the core of the question to make the answer self-contained.
                 7. LANGUAGE: Your answer MUST be in the exact same language as the Question.
                 </rules>
 
