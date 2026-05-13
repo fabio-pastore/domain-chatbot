@@ -25,7 +25,7 @@ class LLMResponder(LlamaCppResponder):
         """
         super().__init__(
             model_path=os.getenv("LLM_MODEL_PATH", "/app/models/Ministral-3B-Instruct-2512-Q4_K_M.gguf"),
-            n_ctx=int(os.getenv("LLM_N_CTX", "8192")),
+            n_ctx=int(os.getenv("LLM_N_CTX", "4096")),
             n_threads=int(os.getenv("LLM_N_THREADS", "0")) or None,
             n_gpu_layers=int(os.getenv("LLM_N_GPU_LAYERS", "0")),
             n_batch=int(os.getenv("LLM_N_BATCH", "512")),
