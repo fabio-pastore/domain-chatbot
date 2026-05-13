@@ -30,30 +30,41 @@ RUN if ! command -v python3.12 >/dev/null 2>&1; then \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
+    cmake \
     libmariadb-dev \
     && rm -rf /var/lib/apt/lists/*
 
 ARG REQUIREMENTS_FILE=requirements-cpu.txt
 COPY ${REQUIREMENTS_FILE} requirements.txt
 
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install -r requirements.txt
-
-# Pre-download the models weights (~150MB + ~100MB)
-RUN python -c "from sentence_transformers import CrossEncoder; CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')"
-
-# Conditionally rebuild llama-cpp-python with CUDA support
 ARG LLAMA_CUDA=OFF
+
+# Fix for missing libcuda.so.1 during build when using CUDA base image
 RUN if [ "$LLAMA_CUDA" = "ON" ]; then \
         if ! command -v nvcc >/dev/null 2>&1; then \
             echo "ERROR: LLAMA_CUDA=ON requires a CUDA devel base image" && exit 1; \
         fi; \
-        apt-get update && apt-get install -y --no-install-recommends cmake && \
-        CMAKE_ARGS="-DLLAMA_CUDA=on" FORCE_CMAKE=1 pip install llama-cpp-python --force-reinstall --no-cache-dir && \
-        apt-get purge -y cmake && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*; \
+        if [ -d /usr/local/cuda/lib64/stubs ]; then \
+            ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 || true; \
+        fi; \
     fi
 
-# Purge build tools only AFTER the optional CUDA rebuild
+RUN --mount=type=cache,target=/root/.cache/pip \
+    if [ "$LLAMA_CUDA" = "ON" ]; then \
+        LD_LIBRARY_PATH="/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH}" CMAKE_ARGS="-DGGML_CUDA=on -DLLAMA_CUDA=on" FORCE_CMAKE=1 CMAKE_BUILD_PARALLEL_LEVEL=4 MAX_JOBS=4 pip install -r requirements.txt; \
+    else \
+        CMAKE_BUILD_PARALLEL_LEVEL=4 MAX_JOBS=4 pip install -r requirements.txt; \
+    fi
+
+# Force uninstall broken PyTorch versions and sentence-transformers, force the PyTorch index, THEN install sentence-transformers (only way to fix the CUDA 13 issue)
+RUN pip uninstall -y torch torchvision torchaudio sentence-transformers && \
+    pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124 && \
+    pip install --no-cache-dir sentence-transformers
+
+# Pre-download the models weights (~150MB + ~100MB)
+RUN python -c "from sentence_transformers import CrossEncoder; CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')"
+
+# Purge build tools
 RUN apt-mark manual libmariadb3 libgomp1 2>/dev/null; \
     apt-get purge -y gcc g++ 2>/dev/null || true; \
     apt-get purge -y cmake 2>/dev/null || true; \
