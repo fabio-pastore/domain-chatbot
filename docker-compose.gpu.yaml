@@ -4,6 +4,7 @@ services:
       args:
         BASE_IMAGE: nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
         REQUIREMENTS_FILE: requirements.txt
+        GPU_BUILD: "true"
     environment:
       - USE_GPU=true
       - LLM_N_GPU_LAYERS=-1
