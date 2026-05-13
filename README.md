@@ -1,4 +1,19 @@
 # Sapienza-DC
+<div>
+  <a href="https://github.com/fabio-pastore">
+    <img src="https://github.com/fabio-pastore.png" width="40" height="40" style="border-radius:50%" alt="Fabio Pastore"/>
+  </a>
+  &nbsp;
+  <a href="https://github.com/ywu24">
+    <img src="https://github.com/ywu24.png" width="40" height="40" style="border-radius:50%" alt="Yi Hao Wu"/>
+  </a>
+  &nbsp;
+  <a href="https://github.com/Zhanytrix">
+    <img src="https://github.com/Zhanytrix.png" width="40" height="40" style="border-radius:50%" alt="Alessandro Zannone"/>
+  </a>
+  <br/>
+  <sub>Built by <b>Fabio Pastore</b> · <b>Yi Hao Wu</b> · <b>Alessandro Zannone</b></sub>
+</div>
 
 <br>
 <p align="center">
@@ -235,10 +250,3 @@ _└── README.md_ <br>
 ## Limitations and future work
 
 ~~The system is constrained if used with a 3B parameter model's reasoning capabilities, particularly for complex multi-hop questions.~~ Domain support is currently limited to the four configured websites. Fallback parsing may extract relevant information but may also introduce excessive noise, since the employed parser is generic. ~~Memory usage under Docker on Windows11 with 16 GB RAM (CPU-only setup) remains tight, and future iterations may migrate to llama.cpp for more efficient CPU inference and reduced container overhead.~~
-
-##
-
-#### Authors
-- _Fabio Pastore_
-- _Yihao Wu_
-- _Alessandro Zannone_
