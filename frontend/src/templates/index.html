@@ -199,6 +199,12 @@
             </div>
             
             <div class="flex items-center gap-3">
+                <button id="btn-settings" class="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-sapienza transition-colors" title="Settings">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </button>
                 <a href="#" class="text-xs font-semibold text-sapienza bg-sapienza/10 px-2.5 py-1.5 rounded-lg hover:bg-sapienza/15 transition-colors hidden sm:block">Sapienza-DC-Beta</a>
                 <div class="w-8 h-8 rounded-full border-2 border-white shadow-sm overflow-hidden bg-sapienza">
                     <img src="{{ url_for('assets', path='assets/sapienza_logo.png') }}" alt="User" class="w-full h-full object-contain">
@@ -279,6 +285,113 @@
         </div>
     </main>
 
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" id="settings-modal-overlay"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-fade-in-up">
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-sapienza/10 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-sapienza" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900">LLM Settings</h3>
+                    </div>
+                    <button id="btn-close-settings" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Modal Body -->
+                <div class="px-6 py-5 space-y-5">
+                    <!-- Status -->
+                    <div id="settings-status" class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                        <span id="settings-status-dot" class="relative flex h-2.5 w-2.5">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-60"></span>
+                            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                        </span>
+                        <span id="settings-status-text" class="text-sm font-medium text-gray-700">Loading...</span>
+                    </div>
+
+                    <!-- Provider Toggle -->
+                    <div>
+                        <label class="text-sm font-semibold text-gray-700 mb-3 block">LLM Provider</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button id="btn-provider-local" class="provider-btn relative p-4 rounded-xl border-2 border-gray-200 bg-white hover:border-sapienza/40 transition-all text-left">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 16.811c0 .864-.933 1.405-1.683.977l-7.108-4.062a1.125 1.125 0 010-1.953l7.108-4.062A1.125 1.125 0 0121 8.688v8.123zM11.25 16.811c0 .864-.933 1.405-1.683.977l-7.108-4.062a1.125 1.125 0 010-1.953l7.108-4.062a1.125 1.125 0 011.683.977v8.123z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-bold text-gray-900">Local LLM</div>
+                                        <div class="text-[11px] text-gray-500">llama.cpp</div>
+                                    </div>
+                                </div>
+                            </button>
+                            <button id="btn-provider-api" class="provider-btn relative p-4 rounded-xl border-2 border-gray-200 bg-white hover:border-sapienza/40 transition-all text-left">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-bold text-gray-900">OpenAI API</div>
+                                        <div class="text-[11px] text-gray-500">Compatible endpoint</div>
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- API Settings -->
+                    <div id="api-settings" class="space-y-4 hidden">
+                        <div>
+                            <label class="text-sm font-semibold text-gray-700 mb-1.5 block">Base URL</label>
+                            <input type="url" id="input-base-url" placeholder="https://api.openai.com/v1"
+                                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-sapienza focus:ring-1 focus:ring-sapienza/20 transition-all">
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold text-gray-700 mb-1.5 block">API Key</label>
+                            <div class="relative">
+                                <input type="password" id="input-api-key" placeholder="sk-..."
+                                    class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-sapienza focus:ring-1 focus:ring-sapienza/20 transition-all pr-10">
+                                <button type="button" id="btn-toggle-key-vis" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold text-gray-700 mb-1.5 block">Model Name</label>
+                            <input type="text" id="input-model-name" placeholder="gpt-4o-mini"
+                                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-sapienza focus:ring-1 focus:ring-sapienza/20 transition-all">
+                        </div>
+                        <div class="flex gap-3">
+                            <button id="btn-test-api" class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all">
+                                Test Connection
+                            </button>
+                            <button id="btn-save-api" class="flex-1 px-4 py-2.5 rounded-xl bg-sapienza text-white text-sm font-semibold hover:bg-sapienza-light transition-all shadow-sm">
+                                Save & Apply
+                            </button>
+                        </div>
+                        <div id="api-test-result" class="hidden text-sm p-3 rounded-xl"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- JS -->
     <script>
     (function() {
@@ -302,6 +415,22 @@
         const sidebar          = document.getElementById("sidebar");
         const mobileOverlay    = document.getElementById("mobile-overlay");
         const suggestBtns      = document.querySelectorAll(".suggest-btn");
+        const btnSettings      = document.getElementById("btn-settings");
+        const settingsModal    = document.getElementById("settings-modal");
+        const btnCloseSettings = document.getElementById("btn-close-settings");
+        const settingsOverlay  = document.getElementById("settings-modal-overlay");
+        const btnProviderLocal = document.getElementById("btn-provider-local");
+        const btnProviderApi   = document.getElementById("btn-provider-api");
+        const apiSettingsDiv   = document.getElementById("api-settings");
+        const inputBaseUrl     = document.getElementById("input-base-url");
+        const inputApiKey      = document.getElementById("input-api-key");
+        const inputModelName   = document.getElementById("input-model-name");
+        const btnTestApi       = document.getElementById("btn-test-api");
+        const btnSaveApi       = document.getElementById("btn-save-api");
+        const apiTestResult    = document.getElementById("api-test-result");
+        const btnToggleKeyVis  = document.getElementById("btn-toggle-key-vis");
+        const settingsStatusText = document.getElementById("settings-status-text");
+        const settingsStatusDot  = document.getElementById("settings-status-dot");
 
         marked.setOptions({ breaks: true, gfm: true });
 
@@ -613,6 +742,144 @@
                 const text = btn.querySelector('.text-\\[13px\\]').textContent;
                 sendMessage(text);
             });
+        });
+
+        // --- Settings Modal ---
+        function openSettings() {
+            settingsModal.classList.remove("hidden");
+            loadLLMStatus();
+            loadApiConfig();
+        }
+
+        function closeSettings() {
+            settingsModal.classList.add("hidden");
+        }
+
+        btnSettings.addEventListener("click", openSettings);
+        btnCloseSettings.addEventListener("click", closeSettings);
+        settingsOverlay.addEventListener("click", closeSettings);
+
+        function updateProviderUI(provider) {
+            if (provider === "api") {
+                btnProviderApi.classList.add("border-sapienza", "bg-sapienza/5");
+                btnProviderApi.classList.remove("border-gray-200");
+                btnProviderLocal.classList.remove("border-sapienza", "bg-sapienza/5");
+                btnProviderLocal.classList.add("border-gray-200");
+                apiSettingsDiv.classList.remove("hidden");
+            } else {
+                btnProviderLocal.classList.add("border-sapienza", "bg-sapienza/5");
+                btnProviderLocal.classList.remove("border-gray-200");
+                btnProviderApi.classList.remove("border-sapienza", "bg-sapienza/5");
+                btnProviderApi.classList.add("border-gray-200");
+                apiSettingsDiv.classList.add("hidden");
+            }
+        }
+
+        async function loadLLMStatus() {
+            try {
+                const resp = await fetch("/api/llm/status");
+                const status = await resp.json();
+                updateProviderUI(status.provider);
+                if (status.error) {
+                    settingsStatusText.textContent = `Error: ${status.error}`;
+                    settingsStatusDot.innerHTML = '<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>';
+                } else {
+                    settingsStatusText.textContent = `Active: ${status.provider.toUpperCase()} — ${status.model_info || ''}`;
+                    settingsStatusDot.innerHTML = '<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-60"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>';
+                }
+            } catch (e) {
+                settingsStatusText.textContent = "Failed to load status";
+            }
+        }
+
+        async function loadApiConfig() {
+            try {
+                const resp = await fetch("/api/llm/api-config");
+                const config = await resp.json();
+                inputBaseUrl.value = config.base_url || "";
+                inputModelName.value = config.model_name || "";
+            } catch (e) {
+                console.error("Failed to load API config:", e);
+            }
+        }
+
+        btnProviderLocal.addEventListener("click", async () => {
+            btnProviderLocal.disabled = true;
+            try {
+                const resp = await fetch("/api/llm/switch", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ provider: "local" }),
+                });
+                const data = await resp.json();
+                updateProviderUI("local");
+                if (data.error) {
+                    settingsStatusText.textContent = `Error: ${data.error}`;
+                    settingsStatusDot.innerHTML = '<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>';
+                } else {
+                    await loadLLMStatus();
+                }
+            } catch (e) {
+                settingsStatusText.textContent = "Failed to switch provider";
+            }
+            btnProviderLocal.disabled = false;
+        });
+
+        btnProviderApi.addEventListener("click", () => {
+            updateProviderUI("api");
+        });
+
+        btnToggleKeyVis.addEventListener("click", () => {
+            inputApiKey.type = inputApiKey.type === "password" ? "text" : "password";
+        });
+
+        btnTestApi.addEventListener("click", async () => {
+            apiTestResult.classList.remove("hidden");
+            apiTestResult.className = "text-sm p-3 rounded-xl bg-gray-50 text-gray-600";
+            apiTestResult.textContent = "Testing connection...";
+            try {
+                const resp = await fetch("/api/llm/test-api", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        api_key: inputApiKey.value,
+                        base_url: inputBaseUrl.value,
+                        model_name: inputModelName.value,
+                    }),
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    apiTestResult.className = "text-sm p-3 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200";
+                    apiTestResult.textContent = "Connection successful!";
+                } else {
+                    apiTestResult.className = "text-sm p-3 rounded-xl bg-red-50 text-red-700 border border-red-200";
+                    apiTestResult.textContent = `Failed: ${data.error}`;
+                }
+            } catch (e) {
+                apiTestResult.className = "text-sm p-3 rounded-xl bg-red-50 text-red-700 border border-red-200";
+                apiTestResult.textContent = "Request failed";
+            }
+        });
+
+        btnSaveApi.addEventListener("click", async () => {
+            btnSaveApi.disabled = true;
+            btnSaveApi.textContent = "Saving...";
+            try {
+                await fetch("/api/llm/save-api-config", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        api_key: inputApiKey.value,
+                        base_url: inputBaseUrl.value,
+                        model_name: inputModelName.value,
+                    }),
+                });
+                await loadLLMStatus();
+            } catch (e) {
+                settingsStatusText.textContent = "Failed to save config";
+            }
+            btnSaveApi.disabled = false;
+            btnSaveApi.textContent = "Save & Apply";
         });
 
         // Init

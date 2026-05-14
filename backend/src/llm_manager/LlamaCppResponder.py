@@ -1,5 +1,5 @@
 import os
-from abc import ABC
+from src.llm_manager.BaseLLMResponder import BaseLLMResponder
 from llama_cpp import Llama # type: ignore
 from src.llm_manager.BaseLLMResponder import BaseLLMResponder
 

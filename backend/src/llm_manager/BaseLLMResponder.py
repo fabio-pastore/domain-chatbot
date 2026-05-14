@@ -79,7 +79,8 @@ class BaseLLMResponder(ABC):
                 return {"accepted": False, "proposed_domain": "", "ambiguous": True, "req_info": additional_req_information}
             elif "REJECTED" in query_status:
                 return {"accepted": False, "proposed_domain": ""}
-            else: return {"accepted": False, "proposed_domain": ""}
+            else:
+                return {"accepted": False, "proposed_domain": ""}
         except json.JSONDecodeError:
             print("[QueryHandler] The LLM failed to return valid JSON.")
             print(clean_text)

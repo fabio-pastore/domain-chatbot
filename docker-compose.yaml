@@ -8,12 +8,14 @@ services:
     volumes:
       - ./backend:/app
       - ./models:/app/models
+      - ./.env:/.env
     env_file: .env
     environment:
       - PYTHONUNBUFFERED=1
+      - ENV_FILE_PATH=/.env
       - LLM_MODEL_PATH=${LLM_MODEL_PATH}
       - LLM_N_CTX=${LLM_N_CTX}
-      - LLM_N_THREADS=0
+      - LLM_N_THREADS=${LLM_N_THREADS:-0}
       - LLM_N_GPU_LAYERS=0
       - LLM_N_BATCH=${LLM_N_BATCH}
       - MAX_OUTPUT_LENGTH=${MAX_OUTPUT_LENGTH}
@@ -24,6 +26,10 @@ services:
       - MARIADB_PASSWORD=${MARIADB_PASSWORD}
       - MARIADB_DATABASE=${MARIADB_DATABASE}
       - USE_GPU=false
+      - LLM_PROVIDER=${LLM_PROVIDER:-local}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-}
+      - OPENAI_MODEL_NAME=${OPENAI_MODEL_NAME:-}
     depends_on:
       mariadb:
         condition: service_healthy
