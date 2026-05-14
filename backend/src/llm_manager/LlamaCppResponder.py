@@ -1,4 +1,6 @@
 import os
+import threading
+from abc import ABC
 from src.llm_manager.BaseLLMResponder import BaseLLMResponder
 from llama_cpp import Llama # type: ignore
 from src.llm_manager.BaseLLMResponder import BaseLLMResponder
@@ -20,6 +22,7 @@ class LlamaCppResponder(BaseLLMResponder):
             )
 
         self.model_path = model_path
+        self._lock = threading.Lock()
         self.llm = Llama(
             model_path=model_path,
             n_ctx=int(os.getenv("LLM_N_CTX", "4608")),
@@ -40,11 +43,12 @@ class LlamaCppResponder(BaseLLMResponder):
             str: The response from the model, or an empty string in case of an error.
         """
         try:
-            output = self.llm.create_chat_completion(
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=-1,
-                temperature=0.7,
-            )
+            with self._lock:
+                output = self.llm.create_chat_completion(
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=-1,
+                    temperature=0.7,
+                )
             return output["choices"][0]["message"]["content"].strip()
         except Exception as e:
             print(f"Error calling llama.cpp model: {e}")
@@ -61,16 +65,17 @@ class LlamaCppResponder(BaseLLMResponder):
             str: Tokens from the model.
         """
         try:
-            stream = self.llm.create_chat_completion(
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=-1,
-                temperature=0.7,
-                stream=True
-            )
-            for chunk in stream:
-                delta = chunk["choices"][0].get("delta", {})
-                if "content" in delta:
-                    yield delta["content"]
+            with self._lock:
+                stream = self.llm.create_chat_completion(
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=-1,
+                    temperature=0.7,
+                    stream=True
+                )
+                for chunk in stream:
+                    delta = chunk["choices"][0].get("delta", {})
+                    if "content" in delta:
+                        yield delta["content"]
         except Exception as e:
             print(f"Error streaming from llama.cpp model: {e}")
             yield ""
