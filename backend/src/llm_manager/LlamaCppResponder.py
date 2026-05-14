@@ -1,6 +1,7 @@
 import os
 from src.llm_manager.BaseLLMResponder import BaseLLMResponder
 from llama_cpp import Llama # type: ignore
+from src.llm_manager.BaseLLMResponder import BaseLLMResponder
 
 class LlamaCppResponder(BaseLLMResponder):
 
@@ -21,7 +22,7 @@ class LlamaCppResponder(BaseLLMResponder):
         self.model_path = model_path
         self.llm = Llama(
             model_path=model_path,
-            n_ctx=int(os.getenv("LLM_N_CTX", "4096")),
+            n_ctx=int(os.getenv("LLM_N_CTX", "4608")),
             n_threads=n_threads if n_threads is not None else (os.cpu_count() or 4),
             n_gpu_layers=int(os.getenv("LLM_N_GPU_LAYERS", "0")),
             n_batch=int(os.getenv("LLM_N_BATCH", "512")),
@@ -73,3 +74,5 @@ class LlamaCppResponder(BaseLLMResponder):
         except Exception as e:
             print(f"Error streaming from llama.cpp model: {e}")
             yield ""
+
+llm_responder = LlamaCppResponder()

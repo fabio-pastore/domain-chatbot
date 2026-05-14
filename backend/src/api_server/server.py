@@ -47,7 +47,8 @@ class ChatOutput(BaseModel):
     """
     info: str
     query_answer: str = ""
-    standalone_query: str = ""
+    search_query: str = ""
+    user_query: str = ""
     selected_domain: str = ""
     relevant_urls: list[str] = []
     extracted_content: list[dict] = []
@@ -139,7 +140,7 @@ def chat(message: ChatInput):
 
             yield f"data: {json.dumps({'phase': 'status', 'content': 'Assessing and selecting relevant information...'})}\n\n"
             rag_data = ChunkSelector.select_relevant_chunks(
-                query=intent_result.standalone_query, parsed_pages=parsed_content
+                query=intent_result.search_query, parsed_pages=parsed_content
             )
             relevant_chunks = []
             for chunks in rag_data.values():
@@ -153,7 +154,7 @@ def chat(message: ChatInput):
             sources_data = ""
             sources_data = "\n\n**Fonti**:\n " + "\n".join(intent_result.relevant_urls)
 
-            for token in query_handler.stream_answer_query(message.session_id, message.query, query_context_data):
+            for token in query_handler.stream_answer_query(message.session_id, intent_result.user_query, query_context_data):
                 full_answer += token
                 yield f"data: {json.dumps({'phase': 'token', 'content': token})}\n\n"
 

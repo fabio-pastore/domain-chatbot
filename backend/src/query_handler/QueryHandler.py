@@ -10,7 +10,7 @@ from src.url_retriever.StartpageUrlRetriever import StartpageUrlRetriever
 from src.url_retriever.WikipediaUrlRetriever import WikipediaUrlRetriever
 
 class IntentResult(BaseModel):
-    standalone_query: str
+    search_query: str
     user_query: str
     selected_domain: str
     is_allowed: bool
