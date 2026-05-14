@@ -2,6 +2,7 @@ import os
 import threading
 from src.llm_manager.LlamaCppResponder import LlamaCppResponder
 from src.llm_manager.OpenAIResponder import OpenAIResponder
+from openai import AuthenticationError, APIConnectionError, APITimeoutError, APIError
 
 
 class LLMProviderManager:
@@ -119,9 +120,23 @@ class LLMProviderManager:
         if not api_key or not base_url or not model_name:
             return {"success": False, "error": "Missing required fields: api_key, base_url, model_name"}
         try:
-            test_client = OpenAIResponder(api_key, base_url, model_name)
-            response = test_client._call_llm("Say 'OK' and nothing else.")
+            test_client = OpenAIResponder(api_key, base_url, model_name, timeout=15.0)
+            response = test_client.client.chat.completions.create(
+                model=model_name,
+                messages=[{"role": "user", "content": "OK"}],
+                max_tokens=1,
+            )
+            if not response.choices:
+                return {"success": False, "error": "Model returned an empty response."}
             return {"success": True, "error": None}
+        except AuthenticationError:
+            return {"success": False, "error": "Authentication failed: invalid API key."}
+        except APITimeoutError:
+            return {"success": False, "error": "Connection timed out after 15 seconds."}
+        except APIConnectionError:
+            return {"success": False, "error": f"Connection failed: unable to reach {base_url}."}
+        except APIError as e:
+            return {"success": False, "error": f"API error: {e.message if hasattr(e, 'message') else str(e)}"}
         except Exception as e:
             return {"success": False, "error": str(e)}
 

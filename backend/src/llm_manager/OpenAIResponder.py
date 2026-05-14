@@ -3,11 +3,11 @@ from openai import OpenAI
 
 
 class OpenAIResponder(BaseLLMResponder):
-    def __init__(self, api_key: str, base_url: str, model_name: str):
+    def __init__(self, api_key: str, base_url: str, model_name: str, timeout: float | None = None):
         self.api_key = api_key
         self.base_url = base_url
         self.model_name = model_name
-        self.client = OpenAI(api_key=api_key, base_url=base_url)
+        self.client = OpenAI(api_key=api_key, base_url=base_url, timeout=timeout)
 
     def _call_llm(self, prompt: str) -> str:
         try:
