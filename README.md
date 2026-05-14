@@ -20,7 +20,7 @@
   <img width="200" height="200" alt="sdc-logo" src="https://github.com/user-attachments/assets/ed3cf0ed-c4ef-4c29-bca9-3b35331ea00d" />
 </p>
 
-A domain-aware retrieval-augmented generation chatbot powered by a local 3B parameter large language model. Sapienza-DC answers user queries by searching across curated domains, extracting relevant content through web parsing, and generating responses with explicit reliability scoring and source attribution.
+A domain-aware retrieval-augmented generation chatbot powered by a local large language model. Sapienza-DC answers user queries by searching across curated domains, extracting relevant content through web parsing, and generating responses with explicit reliability scoring and source attribution.
 
 ## Objectives
 
@@ -58,7 +58,7 @@ Sapienza-DC was built to explore the feasibility of a fully local, domain-constr
      ```env
      MAX_OUTPUT_LENGTH=   # Default: 6000
      TOP_K_CHUNKS=        # Default: 10
-     LLM_N_CTX=           # Default: 4096
+     LLM_N_CTX=           # Default: 4608
      LLM_N_BATCH=         # Default: 512
      LLM_MODEL_PATH=      # Default: /app/models/Ministral-3-3B-Instruct-2512-Q4_K_M.gguf
      ```

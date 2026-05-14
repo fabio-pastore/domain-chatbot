@@ -11,7 +11,7 @@ class LLMResponder(LlamaCppResponder):
 
         The constructor sets up the LLMResponder with the following default values:
         - model_path: "/app/models/Ministral-3-3B-Instruct-2512-Q4_K_M.gguf"
-        - n_ctx: 8192
+        - n_ctx: 4608
         - n_threads: auto (os.cpu_count())
         - n_gpu_layers: 0 (CPU only)
         - n_batch: 512
@@ -25,7 +25,7 @@ class LLMResponder(LlamaCppResponder):
         """
         super().__init__(
             model_path=os.getenv("LLM_MODEL_PATH", "/app/models/Ministral-3B-Instruct-2512-Q4_K_M.gguf"),
-            n_ctx=int(os.getenv("LLM_N_CTX", "4096")),
+            n_ctx=int(os.getenv("LLM_N_CTX", "4608")),
             n_threads=int(os.getenv("LLM_N_THREADS", "0")) or None,
             n_gpu_layers=int(os.getenv("LLM_N_GPU_LAYERS", "0")),
             n_batch=int(os.getenv("LLM_N_BATCH", "512")),
@@ -42,7 +42,7 @@ class LLMResponder(LlamaCppResponder):
         Returns:
             str: The rewritten query. If the response from the LLM is empty, returns the original query.
         """
-        prompt = PromptBuilder.build_query_rewrite_prompt(chat_history, current_query)
+        prompt = PromptBuilder.build_query_rewrite_prompt(PromptBuilder.sanitize_input(chat_history), PromptBuilder.sanitize_input(current_query))
         response = self._call_llm(prompt)
         return response if response else current_query
 
@@ -57,7 +57,7 @@ class LLMResponder(LlamaCppResponder):
         Returns:
             bool: True if the query is allowed, False otherwise.
         """
-        prompt = PromptBuilder.build_guardrail_prompt(query, chat_history, prev_domain)
+        prompt = PromptBuilder.build_guardrail_prompt(PromptBuilder.sanitize_input(query), PromptBuilder.sanitize_input(chat_history), PromptBuilder.sanitize_input(prev_domain))
         response = self._call_llm(prompt)
         print("ORIGINAL LLM GUARDRAIL ANSWER: ", response)
 
@@ -91,38 +91,6 @@ class LLMResponder(LlamaCppResponder):
                 return {"accepted": False, "proposed_domain": ""}
             else: return {"accepted": False, "proposed_domain": ""}
 
-    def filter_relevant_urls(self, query: str, search_results: list[dict]) -> list[str]:
-        """
-        Filters a list of search results to return only the URLs relevant to the query.
-
-        Args:
-            query (str): The query to filter the search results against.
-            search_results (list[dict]): A list of search result dictionaries, each containing 'url' and 'snippet' keys.
-        Returns:
-            list[str]: A list of URLs that are relevant to the query. If no relevant URLs are found, returns an empty list.
-        """
-        if not search_results:
-            return []
-            
-        formatted_results = "\n".join([f"URL: {res.get('url')}\nSnippet: {res.get('snippet')}" for res in search_results])
-        prompt = PromptBuilder.build_relevance_filter_prompt(query, formatted_results)
-        response = self._call_llm(prompt)
-
-        cleaned_response = response.strip()
-        if cleaned_response.upper() == "NONE" or "NONE" in cleaned_response.upper():
-            return []
-        import re
-        urls = re.findall(r'https?://[^\s,]+', cleaned_response)
-
-        seen = set()
-        unique_urls = []
-        for url in urls:
-            if url not in seen:
-                seen.add(url)
-                unique_urls.append(url)
-
-        return unique_urls
-
     def answer_user_query(self, query: str, query_context_data: str) -> str:
         """
         Generates an answer to a user's query based on the query and additional context data.
@@ -134,7 +102,7 @@ class LLMResponder(LlamaCppResponder):
         Returns:
             str: The generated answer to the query.
         """
-        prompt = PromptBuilder.build_answer_user_query_prompt(query, query_context_data)
+        prompt = PromptBuilder.build_answer_user_query_prompt(PromptBuilder.sanitize_input(query), PromptBuilder.sanitize_input(query_context_data))
         response = self._call_llm(prompt)
         return response
 
@@ -142,7 +110,7 @@ class LLMResponder(LlamaCppResponder):
         """
         Generates a streaming answer to a user's query based on context data.
         """
-        prompt = PromptBuilder.build_answer_user_query_prompt(query, query_context_data)
+        prompt = PromptBuilder.build_answer_user_query_prompt(PromptBuilder.sanitize_input(query), PromptBuilder.sanitize_input(query_context_data))
         yield from self._stream_llm(prompt)
 
 llm_responder = LLMResponder()
