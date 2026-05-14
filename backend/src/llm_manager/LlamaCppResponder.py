@@ -4,13 +4,13 @@ from llama_cpp import Llama # type: ignore
 
 class LlamaCppResponder(ABC):
 
-    def __init__(self, model_path: str, n_ctx: int = 8192, n_threads: int = None, n_gpu_layers: int = 0, n_batch: int = 512):
+    def __init__(self, model_path: str, n_ctx: int = 4608, n_threads: int = None, n_gpu_layers: int = 0, n_batch: int = 512):
         """
         Initializes the LlamaCppResponder with the given GGUF model path.
 
         Args:
             model_path (str): Path to the GGUF model file.
-            n_ctx (int): Context window size. Defaults to 8192.
+            n_ctx (int): Context window size. Defaults to 4608.
             n_threads (int): Number of CPU threads to use. Defaults to os.cpu_count().
             n_gpu_layers (int): Number of layers to offload to GPU (-1 for all). Defaults to 0 (CPU only).
             n_batch (int): Prompt processing batch size. Defaults to 512.

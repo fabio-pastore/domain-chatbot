@@ -5,7 +5,8 @@ from src.url_retriever.StartpageUrlRetriever import StartpageUrlRetriever
 from src.url_retriever.WikipediaUrlRetriever import WikipediaUrlRetriever
 
 class IntentResult(BaseModel):
-    standalone_query: str
+    search_query: str
+    user_query: str
     selected_domain: str
     is_allowed: bool
     is_ambiguous: bool = False
@@ -48,7 +49,8 @@ class QueryHandler:
         is_ambiguous: bool = llm_response.get("ambiguous")
         if (is_ambiguous):
             return IntentResult(
-                standalone_query=raw_query,
+                search_query=raw_query,
+                user_query=raw_query,
                 selected_domain="",
                 is_allowed=False,
                 is_ambiguous=True,
@@ -61,17 +63,21 @@ class QueryHandler:
 
         if not is_allowed or is_ambiguous:
             return IntentResult(
-                standalone_query=raw_query,
+                search_query=raw_query,
+                user_query=raw_query,
                 selected_domain="",
                 is_allowed=False,
                 relevant_urls=[]
             )
         
-        standalone_query: str = llm_responder.rewrite_query(history_str, raw_query)
+        rewrite_result: dict = llm_responder.rewrite_query(history_str, raw_query)
+        print("[QueryHandler] LLM answered the prompt with the following: \n", rewrite_result)
+        search_query: str = rewrite_result.get("search_query", raw_query)
+        user_query: str = rewrite_result.get("user_query", raw_query)
         
         relevant_urls: list[str] = []
         if is_allowed:
-            search_query = standalone_query
+            print(f"[QueryHandler] | [INFO] Reformulated user query as: '{user_query}'")
             print(f"[QueryHandler] | [INFO] Initializing search for query: '{search_query}'")
 
             # Build list of domains to search: always include the target domain,
@@ -96,7 +102,8 @@ class QueryHandler:
             print("[QueryHandle] | [INFO] Successfully scraped the following URLs to parse: ", relevant_urls)
 
         return IntentResult(
-            standalone_query=standalone_query,
+            search_query=search_query,
+            user_query=user_query,
             selected_domain=target_domain,
             is_allowed=is_allowed,
             relevant_urls=relevant_urls
