@@ -1,35 +1,18 @@
-import os
 import json
 import regex as re
-from src.llm_manager.LlamaCppResponder import LlamaCppResponder
+from abc import ABC, abstractmethod
 from src.llm_manager.PromptBuilder import PromptBuilder
 
-class LLMResponder(LlamaCppResponder):
-    def __init__(self):
-        """
-        Initializes the LLMResponder with default or environment-specified parameters.
 
-        The constructor sets up the LLMResponder with the following default values:
-        - model_path: "/app/models/Ministral-3-3B-Instruct-2512-Q4_K_M.gguf"
-        - n_ctx: 4608
-        - n_threads: auto (os.cpu_count())
-        - n_gpu_layers: 0 (CPU only)
-        - n_batch: 512
+class BaseLLMResponder(ABC):
 
-        These values can be overridden by setting the corresponding environment variables:
-        - LLM_MODEL_PATH
-        - LLM_N_CTX
-        - LLM_N_THREADS
-        - LLM_N_GPU_LAYERS
-        - LLM_N_BATCH
-        """
-        super().__init__(
-            model_path=os.getenv("LLM_MODEL_PATH", "/app/models/Ministral-3B-Instruct-2512-Q4_K_M.gguf"),
-            n_ctx=int(os.getenv("LLM_N_CTX", "4608")),
-            n_threads=int(os.getenv("LLM_N_THREADS", "0")) or None,
-            n_gpu_layers=int(os.getenv("LLM_N_GPU_LAYERS", "0")),
-            n_batch=int(os.getenv("LLM_N_BATCH", "512")),
-        )
+    @abstractmethod
+    def _call_llm(self, prompt: str) -> str:
+        ...
+
+    @abstractmethod
+    def _stream_llm(self, prompt: str):
+        ...
 
     def rewrite_query(self, chat_history: str, current_query: str) -> dict:
         """
@@ -129,6 +112,3 @@ class LLMResponder(LlamaCppResponder):
         """
         prompt = PromptBuilder.build_answer_user_query_prompt(PromptBuilder.sanitize_input(query), PromptBuilder.sanitize_input(query_context_data))
         yield from self._stream_llm(prompt)
-
-llm_responder = LLMResponder()
-
