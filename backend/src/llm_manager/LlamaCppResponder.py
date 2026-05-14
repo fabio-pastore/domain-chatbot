@@ -1,20 +1,17 @@
 import os
 from abc import ABC
 from llama_cpp import Llama # type: ignore
+from src.llm_manager.BaseLLMResponder import BaseLLMResponder
 
-class LlamaCppResponder(ABC):
+class LlamaCppResponder(BaseLLMResponder):
 
-    def __init__(self, model_path: str, n_ctx: int = 4608, n_threads: int = None, n_gpu_layers: int = 0, n_batch: int = 512):
+    def __init__(self):
         """
-        Initializes the LlamaCppResponder with the given GGUF model path.
-
-        Args:
-            model_path (str): Path to the GGUF model file.
-            n_ctx (int): Context window size. Defaults to 4608.
-            n_threads (int): Number of CPU threads to use. Defaults to os.cpu_count().
-            n_gpu_layers (int): Number of layers to offload to GPU (-1 for all). Defaults to 0 (CPU only).
-            n_batch (int): Prompt processing batch size. Defaults to 512.
+        Initializes the LlamaCppResponder with the given env variables.
         """
+        n_threads=int(os.getenv("LLM_N_THREADS", "0")) or None
+        model_path=os.getenv("LLM_MODEL_PATH", "/app/models/Ministral-3B-Instruct-2512-Q4_K_M.gguf")
+        
         if not os.path.exists(model_path):
             raise FileNotFoundError(
                 f"Model file not found: {model_path}\n"
@@ -25,10 +22,10 @@ class LlamaCppResponder(ABC):
         self.model_path = model_path
         self.llm = Llama(
             model_path=model_path,
-            n_ctx=n_ctx,
+            n_ctx=int(os.getenv("LLM_N_CTX", "4608")),
             n_threads=n_threads if n_threads is not None else (os.cpu_count() or 4),
-            n_gpu_layers=n_gpu_layers,
-            n_batch=n_batch,
+            n_gpu_layers=int(os.getenv("LLM_N_GPU_LAYERS", "0")),
+            n_batch=int(os.getenv("LLM_N_BATCH", "512")),
             verbose=False
         )
 
@@ -77,3 +74,5 @@ class LlamaCppResponder(ABC):
         except Exception as e:
             print(f"Error streaming from llama.cpp model: {e}")
             yield ""
+
+llm_responder = LlamaCppResponder()

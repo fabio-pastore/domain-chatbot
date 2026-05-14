@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from src.db_manager.ChatHistoryManager import chat_history_manager
-from src.llm_manager.LLMResponder import llm_responder
+from src.llm_manager.LlamaCppResponder import llm_responder
 from src.url_retriever.StartpageUrlRetriever import StartpageUrlRetriever
 from src.url_retriever.WikipediaUrlRetriever import WikipediaUrlRetriever
 
