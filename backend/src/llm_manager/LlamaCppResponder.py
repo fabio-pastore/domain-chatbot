@@ -74,5 +74,3 @@ class LlamaCppResponder(BaseLLMResponder):
         except Exception as e:
             print(f"Error streaming from llama.cpp model: {e}")
             yield ""
-
-llm_responder = LlamaCppResponder()
