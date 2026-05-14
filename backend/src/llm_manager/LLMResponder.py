@@ -31,7 +31,7 @@ class LLMResponder(LlamaCppResponder):
             n_batch=int(os.getenv("LLM_N_BATCH", "512")),
         )
 
-    def rewrite_query(self, chat_history: str, current_query: str) -> str:
+    def rewrite_query(self, chat_history: str, current_query: str) -> dict:
         """
         Rewrites a query based on chat history and the current query.
 
@@ -40,11 +40,28 @@ class LLMResponder(LlamaCppResponder):
             current_query (str): The current query to be rewritten.
 
         Returns:
-            str: The rewritten query. If the response from the LLM is empty, returns the original query.
+            dict: The rewritten query containing 'search_query' and 'user_query'.
         """
         prompt = PromptBuilder.build_query_rewrite_prompt(PromptBuilder.sanitize_input(chat_history), PromptBuilder.sanitize_input(current_query))
         response = self._call_llm(prompt)
-        return response if response else current_query
+        
+        if not response:
+            return {"search_query": "", "user_query": ""}
+            
+        match = re.search(r'```(?:json)?(.*?)```', response, re.DOTALL)
+        clean_text = match.group(1).strip() if match else response.strip()
+        
+        try:
+            extracted_data = json.loads(clean_text)
+            reconstructed_search_query: str = ""
+            if (isinstance(extracted_data.get("search_query"), list)): # try and rebuild broken llm response if it gets the format wrong
+                reconstructed_search_query = " ".join(extracted_data.get("search_query"))
+                return {"search_query": reconstructed_search_query, "user_query": extracted_data.get("user_query")}
+            else:
+                return extracted_data 
+        except json.JSONDecodeError:
+            print("[LLMResponder] Failed to parse JSON for rewrite_query. Fallback to raw response.")
+            return {"search_query": clean_text, "user_query": clean_text}
 
     def check_guardrails(self, query: str, chat_history: str, prev_domain: str) -> bool:
         """
