@@ -1,5 +1,6 @@
 import os
 import uuid
+import threading
 from datetime import datetime
 
 import mariadb
@@ -8,17 +9,19 @@ class ChatHistoryManager:
     """
     Manages chat history for users based on session id.
     Uses MariaDB for persistent storage.
+    Each thread gets its own connection to avoid concurrency issues
+    with FastAPI's thread pool.
     """
 
     def __init__(self, max_history: int = 5):
         self.max_history = max_history
-        self._conn = None
-        self._connect()
+        self._local = threading.local()
+        self._ensure_connection()
         self._init_tables()
 
-    def _connect(self):
-        """Establish a connection to MariaDB."""
-        self._conn = mariadb.connect(
+    def _create_connection(self):
+        """Create a new connection to MariaDB."""
+        return mariadb.connect(
             host=os.environ.get("MARIADB_HOST", "localhost"),
             port=int(os.environ.get("MARIADB_PORT", "3306")),
             user=os.environ.get("MARIADB_USER", "chatbot"),
@@ -27,13 +30,19 @@ class ChatHistoryManager:
             autocommit=True,
         )
 
+    def _ensure_connection(self):
+        """Ensure the current thread has a valid connection."""
+        if not hasattr(self._local, 'conn') or self._local.conn is None:
+            self._local.conn = self._create_connection()
+
     def _get_cursor(self):
-        """Get a cursor, reconnecting if the connection is stale."""
+        """Get a cursor from the current thread's connection, reconnecting if stale."""
+        self._ensure_connection()
         try:
-            self._conn.ping(reconnect=True)
+            self._local.conn.ping(reconnect=True)
         except Exception:
-            self._connect()
-        return self._conn.cursor()
+            self._local.conn = self._create_connection()
+        return self._local.conn.cursor()
 
     def _init_tables(self):
         """Create tables if they do not exist."""

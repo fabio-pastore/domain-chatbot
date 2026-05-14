@@ -2,7 +2,7 @@ import os
 from fastapi import FastAPI, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 import httpx
 
 app = FastAPI()
@@ -45,28 +45,37 @@ async def index(request: Request):
 @app.get("/api/sessions")
 async def proxy_list_sessions():
     """Proxy: list all sessions from backend."""
-    async with httpx.AsyncClient(timeout=10) as client:
-        resp = await client.get(f"{BACKEND_URL}/sessions")
-        return resp.json()
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(f"{BACKEND_URL}/sessions")
+            return resp.json()
+    except httpx.RequestError:
+        return JSONResponse(status_code=503, content={"error": "Backend service unavailable"})
 
 
 @app.post("/api/sessions")
 async def proxy_create_session(request: Request):
     """Proxy: create a new session."""
-    body = await request.json()
-    async with httpx.AsyncClient(timeout=10) as client:
-        resp = await client.post(f"{BACKEND_URL}/sessions", json=body)
-        return resp.json()
+    try:
+        body = await request.json()
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(f"{BACKEND_URL}/sessions", json=body)
+            return resp.json()
+    except httpx.RequestError:
+        return JSONResponse(status_code=503, content={"error": "Backend service unavailable"})
 
 
 @app.get("/api/sessions/{session_id}/messages")
 async def proxy_get_messages(session_id: str):
     """Proxy: get messages for a session."""
-    async with httpx.AsyncClient(timeout=10) as client:
-        resp = await client.get(f"{BACKEND_URL}/sessions/{session_id}/messages")
-        if resp.status_code == 404:
-            return {"error": "Session not found"}
-        return resp.json()
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(f"{BACKEND_URL}/sessions/{session_id}/messages")
+            if resp.status_code == 404:
+                return {"error": "Session not found"}
+            return resp.json()
+    except httpx.RequestError:
+        return JSONResponse(status_code=503, content={"error": "Backend service unavailable"})
 
 
 from fastapi.responses import StreamingResponse
@@ -77,18 +86,25 @@ async def proxy_chat(request: Request):
     body = await request.json()
     
     async def stream_from_backend():
-        async with httpx.AsyncClient(timeout=240) as client:
-            async with client.stream("POST", f"{BACKEND_URL}/chat", json=body) as response:
-                async for chunk in response.aiter_bytes():
-                    yield chunk
+        try:
+            async with httpx.AsyncClient(timeout=240) as client:
+                async with client.stream("POST", f"{BACKEND_URL}/chat", json=body) as response:
+                    async for chunk in response.aiter_bytes():
+                        yield chunk
+        except httpx.RequestError:
+            import json as _json
+            yield f"data: {_json.dumps({'phase': 'error', 'content': 'Backend service unavailable'})}\n\n".encode()
 
     return StreamingResponse(stream_from_backend(), media_type="text/event-stream")
 
 @app.delete("/api/sessions/{session_id}")
 async def proxy_delete_session(session_id: str):
     """Proxy: delete a session."""
-    async with httpx.AsyncClient(timeout=10) as client:
-        resp = await client.delete(f"{BACKEND_URL}/sessions/{session_id}")
-        if resp.status_code == 404:
-            return {"error": "Session not found"}
-        return resp.json()
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.delete(f"{BACKEND_URL}/sessions/{session_id}")
+            if resp.status_code == 404:
+                return {"error": "Session not found"}
+            return resp.json()
+    except httpx.RequestError:
+        return JSONResponse(status_code=503, content={"error": "Backend service unavailable"})

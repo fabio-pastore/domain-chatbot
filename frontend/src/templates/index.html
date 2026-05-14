@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -429,7 +430,7 @@
                 wrapper.innerHTML = `
                     <div class="max-w-[80%] msg-user px-5 py-4 rounded-2xl rounded-tr-sm text-[15px] leading-relaxed whitespace-pre-wrap break-all font-medium shadow-md shadow-sapienza/10">${escapeHtml(content)}</div>`;
             } else {
-                const html = marked.parse(content);
+                const html = DOMPurify.sanitize(marked.parse(content));
                 wrapper.innerHTML = `
                     <img src="{{ url_for('assets', path='assets/sapienza_logo.png') }}" class="w-9 h-9 rounded-full shrink-0 mt-1 shadow-md object-contain bg-sapienza" alt="Bot Logo">
                     <div class="flex-1 min-w-0">
@@ -540,13 +541,13 @@
                                         contentDiv.classList.remove('hidden');
                                     }
                                     fullAnswer += data.content;
-                                    contentDiv.innerHTML = marked.parse(fullAnswer);
+                                    contentDiv.innerHTML = DOMPurify.sanitize(marked.parse(fullAnswer));
                                     scrollToBottom();
                                 } else if (data.phase === "complete") {
                                     statusDiv.classList.add('hidden');
                                     contentDiv.classList.remove('hidden');
                                     if (data.content && !fullAnswer) {
-                                        contentDiv.innerHTML = marked.parse(data.content);
+                                        contentDiv.innerHTML = DOMPurify.sanitize(marked.parse(data.content));
                                     }
                                     scrollToBottom();
                                 } else if (data.phase === "error") {

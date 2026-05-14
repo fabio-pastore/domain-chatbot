@@ -1,5 +1,7 @@
 import requests
 import os
+from urllib.parse import urlparse
+
 class MWPClient:
     """
     Client to interact with the Minerva Web Parser (MWP) microservice
@@ -18,10 +20,9 @@ class MWPClient:
         Returns:
             bool: True if the URL belongs to a supported domain, False otherwise.
         """
-        for domain in cls.SUPPORTED_DOMAINS:
-            if f"://{domain}" in url or f"://{domain}/" in url:
-                return True
-        return False
+        parsed = urlparse(url)
+        hostname = parsed.hostname or ""
+        return hostname in cls.SUPPORTED_DOMAINS
 
     @classmethod
     def parse_url(cls, url: str, generic_domain: bool = False) -> str | None:
