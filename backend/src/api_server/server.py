@@ -6,6 +6,8 @@ from src.db_manager.ChatHistoryManager import chat_history_manager
 from src.rag.MWPClient import MWPClient
 from src.rag.ChunkSelector import ChunkSelector
 from src.rag.ContextGenerator import ContextGenerator
+from src.llm_manager.LLMProviderManager import llm_provider_manager
+from src.utils.env_utils import update_env_file, read_env_value
 
 app = FastAPI()
 
@@ -57,6 +59,24 @@ class ChatOutput(BaseModel):
 class CreateSessionInput(BaseModel):
     """Input for creating a new session."""
     title: str = "New Chat"
+    
+class SwitchProviderInput(BaseModel):
+    provider: str
+    api_key: str | None = None
+    base_url: str | None = None
+    model_name: str | None = None
+
+
+class TestApiInput(BaseModel):
+    api_key: str
+    base_url: str
+    model_name: str
+
+
+class SaveApiConfigInput(BaseModel):
+    api_key: str
+    base_url: str
+    model_name: str
 
 
 from fastapi.responses import StreamingResponse
@@ -77,6 +97,12 @@ def chat(message: ChatInput):
     """
     def event_stream():
         try:
+            responder = llm_provider_manager.get_responder()
+            if responder is None:
+                status = llm_provider_manager.get_status()
+                yield f"data: {json.dumps({'phase': 'error', 'content': status.get('error', 'No LLM provider available. Please configure a provider in Settings.')})}\n\n"
+                return
+
             yield f"data: {json.dumps({'phase': 'status', 'content': 'Checking guardrails and intent...'})}\n\n"
             intent_result = query_handler.process_query(message.session_id, message.query)
 
@@ -192,3 +218,61 @@ def health():
         dict: A dictionary indicating the server's health status.
     """
     return {"status": "healthy"}
+
+@app.get("/llm/status")
+def llm_status():
+    return llm_provider_manager.get_status()
+
+
+@app.post("/llm/switch")
+def llm_switch(body: SwitchProviderInput):
+    if body.provider == "local":
+        result = llm_provider_manager.switch_to_local()
+        if not result["success"]:
+            return {"success": False, "error": result["error"], **llm_provider_manager.get_status()}
+        return {"success": True, **llm_provider_manager.get_status()}
+    elif body.provider == "api":
+        if not body.api_key or not body.base_url or not body.model_name:
+            raise HTTPException(status_code=400, detail="api_key, base_url, and model_name are required")
+        result = llm_provider_manager.switch_to_api(body.api_key, body.base_url, body.model_name)
+        if not result["success"]:
+            return {"success": False, "error": result["error"], **llm_provider_manager.get_status()}
+        return {"success": True, **llm_provider_manager.get_status()}
+    else:
+        raise HTTPException(status_code=400, detail="Invalid provider. Use 'local' or 'api'.")
+
+
+@app.post("/llm/test-api")
+def llm_test_api(body: TestApiInput):
+    result = llm_provider_manager.test_api_connection(body.api_key, body.base_url, body.model_name)
+    return result
+
+
+@app.post("/llm/save-api-config")
+def llm_save_api_config(body: SaveApiConfigInput):
+    import os
+    env_path = os.environ.get("ENV_FILE_PATH", "")
+    if env_path:
+        update_env_file(env_path, {
+            "LLM_PROVIDER": "api",
+            "OPENAI_API_KEY": body.api_key,
+            "OPENAI_BASE_URL": body.base_url,
+            "OPENAI_MODEL_NAME": body.model_name,
+        })
+    os.environ["LLM_PROVIDER"] = "api"
+    os.environ["OPENAI_API_KEY"] = body.api_key
+    os.environ["OPENAI_BASE_URL"] = body.base_url
+    os.environ["OPENAI_MODEL_NAME"] = body.model_name
+    result = llm_provider_manager.switch_to_api(body.api_key, body.base_url, body.model_name)
+    if not result["success"]:
+        return {"success": False, "error": result["error"]}
+    return {"success": True}
+
+
+@app.get("/llm/api-config")
+def llm_api_config():
+    import os
+    return {
+        "base_url": os.getenv("OPENAI_BASE_URL", ""),
+        "model_name": os.getenv("OPENAI_MODEL_NAME", ""),
+    }

@@ -1,6 +1,11 @@
 from pydantic import BaseModel
 from src.db_manager.ChatHistoryManager import chat_history_manager
-from src.llm_manager.LLMResponder import llm_responder
+from src.llm_manager.LLMProviderManager import llm_provider_manager
+
+
+def _get_responder():
+    return llm_provider_manager.get_responder()
+
 from src.url_retriever.StartpageUrlRetriever import StartpageUrlRetriever
 from src.url_retriever.WikipediaUrlRetriever import WikipediaUrlRetriever
 
@@ -39,7 +44,8 @@ class QueryHandler:
         prev_domain: str = chat_history_manager.get_query_domain(session_id)
         print(f"{{PREV DOMAIN: '{prev_domain}'}}")
         
-        llm_response = llm_responder.check_guardrails(raw_query, history_str, prev_domain)
+        responder = _get_responder()
+        llm_response = responder.check_guardrails(raw_query, history_str, prev_domain)
         target_domain = ""
 
         print("[QueryHandler] LLM answered the prompt with the following: \n", llm_response)
@@ -67,7 +73,7 @@ class QueryHandler:
                 relevant_urls=[]
             )
         
-        standalone_query: str = llm_responder.rewrite_query(history_str, raw_query)
+        standalone_query: str = _get_responder().rewrite_query(history_str, raw_query)
         
         relevant_urls: list[str] = []
         if is_allowed:
@@ -114,13 +120,13 @@ class QueryHandler:
         Returns:
             str: The answer to the user's query.
         """
-        return llm_responder.answer_user_query(query, query_context_data)
+        return _get_responder().answer_user_query(query, query_context_data)
 
     def stream_answer_query(self, session_id: str, query: str, query_context_data: str):
         """
         Streams an answer to a user query using the LLM responder.
         """
-        return llm_responder.stream_user_query(query, query_context_data)
+        return _get_responder().stream_user_query(query, query_context_data)
 
 query_handler = QueryHandler()
 
