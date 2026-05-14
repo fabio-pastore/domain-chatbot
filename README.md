@@ -20,7 +20,7 @@
   <img width="200" height="200" alt="sdc-logo" src="https://github.com/user-attachments/assets/ed3cf0ed-c4ef-4c29-bca9-3b35331ea00d" />
 </p>
 
-A domain-aware retrieval-augmented generation chatbot powered by a local large language model. Sapienza-DC answers user queries by searching across curated domains, extracting relevant content through web parsing, and generating responses with explicit reliability scoring and source attribution.
+A domain-aware retrieval-augmented generation chatbot powered by LLM (both local and through OpenAI-compatible API). Sapienza-DC answers user queries by searching across curated domains, extracting relevant content through web parsing, and generating responses with explicit reliability scoring and source attribution.
 
 ## Objectives
 
@@ -40,7 +40,7 @@ Sapienza-DC was built to explore the feasibility of a fully local, domain-constr
   - Enable BuildKit by setting `DOCKER_BUILDKIT=1` or using `docker buildx`
 - RAM: Minimum 8 GB (16 GB+ recommended for Windows 11 or complex models)
 - Storage: At least 20 GB free disk space (for models + dependencies)
-- CPU: Recommend Ryzen 5 4600H or better. Total generation time from tests with the 4600H is ~2min 15s.
+- CPU: Recommend Ryzen 5 4600H or better. Total generation time from tests with the 4600H is ~2min 30s.
 - Optional:
   - NVIDIA GPU with CUDA support (for accelerated inference)
   - GPU drivers installed (if using CUDA)
@@ -61,14 +61,28 @@ Sapienza-DC was built to explore the feasibility of a fully local, domain-constr
      LLM_N_CTX=           # Default: 4608
      LLM_N_BATCH=         # Default: 512
      LLM_MODEL_PATH=      # Default: /app/models/Ministral-3-3B-Instruct-2512-Q4_K_M.gguf
+     LLM_PROVIDER=        # Default: local
+     OPENAI_API_KEY=
+     OPENAI_BASE_URL=
+     OPENAI_MODEL_NAME=
      ```
    - Notes:
-     - Adjust values based on your hardware (e.g., reduce `LLM_N_CTX` if OOM errors occur).
+     - Adjust values based on your hardware (e.g., reduce `LLM_N_CTX` or `LLM_N_BATCH` if OOM errors occur).
      - Ensure `LLM_MODEL_PATH` points to a valid `.gguf` file (or your preferred, llama.cpp supported model format).
 
-2. Model File
-   - Place your model in `/models/` (and update `LLM_MODEL_PATH` in `.env`).
+2. - Model File
+     - Place your model in `/models/` (and update `LLM_MODEL_PATH` in `.env`).
 
+     OR
+
+   - Bring Your Own Key
+     - Set LLM_PROVIDER=api
+     - Optional: Set OPENAI_API_KEY, OPENAI_BASE_URL and OPENAI_MODEL_NAME (they can be submitted through the Web UI)
+
+   - Notes:
+     - Our Web UI allows for the switch between the two modes during runtime.
+     - The local LLM will persist in memory once loaded (there's no unload after a switch to API).
+   
 ### CPU-only deployment
 - bash:
   ```bash
@@ -151,7 +165,7 @@ chat history is persisted across sessions. The system uses historical context to
 - Multi-domain URL retrieval via Startpage search and Wikipedia API
 - Web content extraction through the integrated Minerva Web Parser microservice (MWP)
 - Two-stage retrieval: bi-encoder cosine similarity followed by cross-encoder reranking
-- Local LLM inference with streaming token generation via SSE
+- Local LLM/API inference with streaming token generation via SSE
 - Persistent chat history and URL parse caching through MariaDB
 
 **Frontend** (FastAPI + Jinja2 on port 8002)
@@ -159,6 +173,7 @@ chat history is persisted across sessions. The system uses historical context to
 - Session management with conversation history browsing
 - Real-time streaming of LLM responses with status indicators
 - Toggle for forcing fresh web parsing versus cached content
+- Switch between local and API inference
 
 **Database** (MariaDB 11)
 - Session and message persistence with foreign key relationships
@@ -246,6 +261,12 @@ _└── README.md_ <br>
 | DELETE | /sessions/{id} | Delete a session and its messages |
 | DELETE | /clear_cache | Clear all parsed URL cache entries |
 | GET | /health | Health check |
+| GET | /llm/status | LLM status check |
+| POST | /llm/switch | Switch between inference modes |
+| POST | /llm/test-api | Test API connection |
+| POST | /llm/save-api-config | Save API config to .env and switch to API mode |
+| GET | /llm/api-config | Check current API config |
+
 
 ## Limitations and future work
 
