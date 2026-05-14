@@ -104,7 +104,7 @@ async def proxy_llm_status():
 @app.post("/api/llm/switch")
 async def proxy_llm_switch(request: Request):
     body = await request.json()
-    async with httpx.AsyncClient(timeout=15) as client:
+    async with httpx.AsyncClient(timeout=120) as client:
         resp = await client.post(f"{BACKEND_URL}/llm/switch", json=body)
         return resp.json()
 
