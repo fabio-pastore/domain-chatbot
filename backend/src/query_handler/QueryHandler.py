@@ -76,7 +76,7 @@ class QueryHandler:
                 relevant_urls=[]
             )
         
-        rewrite_result: dict = llm_responder.rewrite_query(history_str, raw_query)
+        rewrite_result: dict = responder.rewrite_query(history_str, raw_query)
         print("[QueryHandler] LLM answered the prompt with the following: \n", rewrite_result)
         search_query: str = rewrite_result.get("search_query", raw_query)
         user_query: str = rewrite_result.get("user_query", raw_query)
