@@ -1,35 +1,18 @@
-import os
 import json
 import regex as re
-from src.llm_manager.LlamaCppResponder import LlamaCppResponder
+from abc import ABC, abstractmethod
 from src.llm_manager.PromptBuilder import PromptBuilder
 
-class LLMResponder(LlamaCppResponder):
-    def __init__(self):
-        """
-        Initializes the LLMResponder with default or environment-specified parameters.
 
-        The constructor sets up the LLMResponder with the following default values:
-        - model_path: "/app/models/Ministral-3-3B-Instruct-2512-Q4_K_M.gguf"
-        - n_ctx: 4608
-        - n_threads: auto (os.cpu_count())
-        - n_gpu_layers: 0 (CPU only)
-        - n_batch: 512
+class BaseLLMResponder(ABC):
 
-        These values can be overridden by setting the corresponding environment variables:
-        - LLM_MODEL_PATH
-        - LLM_N_CTX
-        - LLM_N_THREADS
-        - LLM_N_GPU_LAYERS
-        - LLM_N_BATCH
-        """
-        super().__init__(
-            model_path=os.getenv("LLM_MODEL_PATH", "/app/models/Ministral-3B-Instruct-2512-Q4_K_M.gguf"),
-            n_ctx=int(os.getenv("LLM_N_CTX", "4608")),
-            n_threads=int(os.getenv("LLM_N_THREADS", "0")) or None,
-            n_gpu_layers=int(os.getenv("LLM_N_GPU_LAYERS", "0")),
-            n_batch=int(os.getenv("LLM_N_BATCH", "512")),
-        )
+    @abstractmethod
+    def _call_llm(self, prompt: str) -> str:
+        ...
+
+    @abstractmethod
+    def _stream_llm(self, prompt: str):
+        ...
 
     def rewrite_query(self, chat_history: str, current_query: str) -> dict:
         """
@@ -44,24 +27,56 @@ class LLMResponder(LlamaCppResponder):
         """
         prompt = PromptBuilder.build_query_rewrite_prompt(PromptBuilder.sanitize_input(chat_history), PromptBuilder.sanitize_input(current_query))
         response = self._call_llm(prompt)
-        
+
         if not response:
             return {"search_query": "", "user_query": ""}
             
         match = re.search(r'```(?:json)?(.*?)```', response, re.DOTALL)
         clean_text = match.group(1).strip() if match else response.strip()
-        
+
         try:
             extracted_data = json.loads(clean_text)
-            reconstructed_search_query: str = ""
-            if (isinstance(extracted_data.get("search_query"), list)): # try and rebuild broken llm response if it gets the format wrong
-                reconstructed_search_query = " ".join(extracted_data.get("search_query"))
-                return {"search_query": reconstructed_search_query, "user_query": extracted_data.get("user_query")}
+            
+            if not isinstance(extracted_data, dict):
+                raise ValueError("[QueryHandler] | [EXCEPTION] Unexpected LLM output.")
+
+            search_query_raw = extracted_data.get("search_query")
+            user_query_raw = extracted_data.get("user_query", "")
+            reconstructed_search_query = ""
+
+            # try and salvage case in which LLM outputs the wrong format
+            if isinstance(search_query_raw, list):
+                reconstructed_search_query = " ".join(str(item) for item in search_query_raw)
+
+            # nested dict -> it has done this once, stupid LLM i told you to just output a pair <str, str> why do I even have to check for this
+            elif isinstance(search_query_raw, dict):
+                if len(search_query_raw) != 1: # absolute abomination of an output, abort and raise exception
+                    raise ValueError("[QueryHandler] | [EXCEPTION] Unexpected LLM output.")
+                
+                key = list(search_query_raw.keys())[0]
+                val = search_query_raw.get(key)
+
+                if isinstance(val, list):
+                    reconstructed_search_query = " ".join(str(item) for item in val)
+                elif isinstance(val, str):
+                    reconstructed_search_query = val 
+                else: # no clue what this could even be
+                    raise ValueError("[QueryHandler] | [EXCEPTION] Unexpected LLM output.")
+
+            elif isinstance(search_query_raw, str):
+                reconstructed_search_query = search_query_raw
+                
             else:
-                return extracted_data 
-        except json.JSONDecodeError:
-            print("[LLMResponder] Failed to parse JSON for rewrite_query. Fallback to raw response.")
-            return {"search_query": clean_text, "user_query": clean_text}
+                reconstructed_search_query = str(search_query_raw) if search_query_raw else ""
+
+            return {
+                "search_query": reconstructed_search_query.strip(), 
+                "user_query": str(user_query_raw).strip() if user_query_raw else ""
+            } 
+
+        except (json.JSONDecodeError, ValueError) as e:
+            print(f"[LLMResponder] | [WARNING] Failed to parse JSON for rewrite_query. Fallback to raw response. Reason: {e}")
+            return {"search_query": clean_text, "user_query": clean_text} # fallback if LLM gets output format wrong
 
     def check_guardrails(self, query: str, chat_history: str, prev_domain: str) -> bool:
         """
@@ -96,7 +111,8 @@ class LLMResponder(LlamaCppResponder):
                 return {"accepted": False, "proposed_domain": "", "ambiguous": True, "req_info": additional_req_information}
             elif "REJECTED" in query_status:
                 return {"accepted": False, "proposed_domain": ""}
-            else: return {"accepted": False, "proposed_domain": ""}
+            else:
+                return {"accepted": False, "proposed_domain": ""}
         except json.JSONDecodeError:
             print("[QueryHandler] The LLM failed to return valid JSON.")
             print(clean_text)
@@ -129,6 +145,3 @@ class LLMResponder(LlamaCppResponder):
         """
         prompt = PromptBuilder.build_answer_user_query_prompt(PromptBuilder.sanitize_input(query), PromptBuilder.sanitize_input(query_context_data))
         yield from self._stream_llm(prompt)
-
-llm_responder = LLMResponder()
-

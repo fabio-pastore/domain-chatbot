@@ -11,3 +11,5 @@ langchain-text-splitters
 fastembed
 onnxruntime
 llama-cpp-python
+openai
+distro
