@@ -15,8 +15,8 @@ class LlamaCppResponder(BaseLLMResponder):
         if not os.path.exists(model_path):
             raise FileNotFoundError(
                 f"Model file not found: {model_path}\n"
-                "Please download a Ministral 3B 4-bit GGUF model (or any other tbh) "
-                "and place it at the configured path."
+                "Please download a .gguf file for your LLM of choice (i.e. Ministral 3B 4-bit)"
+                "and place it in the configured path."
             )
 
         self.model_path = model_path

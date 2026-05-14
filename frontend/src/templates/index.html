@@ -805,6 +805,9 @@
 
         btnProviderLocal.addEventListener("click", async () => {
             btnProviderLocal.disabled = true;
+            settingsStatusText.textContent = "Loading local model... This may take some time.";
+            settingsStatusText.classList.remove("text-red-600");
+            settingsStatusDot.innerHTML = '<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-60"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>';
             try {
                 const resp = await fetch("/api/llm/switch", {
                     method: "POST",

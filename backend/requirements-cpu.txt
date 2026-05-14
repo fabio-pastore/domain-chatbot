@@ -12,3 +12,4 @@ fastembed
 onnxruntime
 llama-cpp-python
 openai
+distro

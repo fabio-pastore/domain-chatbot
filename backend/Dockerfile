@@ -23,6 +23,8 @@ RUN if ! command -v python3.12 >/dev/null 2>&1; then \
         curl -sS https://bootstrap.pypa.io/get-pip.py | python3.12 && \
         update-alternatives --install /usr/bin/python python /usr/bin/python3.12 1 && \
         update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1 && \
+        apt-get purge -y software-properties-common && \
+        apt-get autoremove -y && \
         rm -rf /var/lib/apt/lists/*; \
     fi
 

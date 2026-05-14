@@ -27,24 +27,56 @@ class BaseLLMResponder(ABC):
         """
         prompt = PromptBuilder.build_query_rewrite_prompt(PromptBuilder.sanitize_input(chat_history), PromptBuilder.sanitize_input(current_query))
         response = self._call_llm(prompt)
-        
+
         if not response:
             return {"search_query": "", "user_query": ""}
             
         match = re.search(r'```(?:json)?(.*?)```', response, re.DOTALL)
         clean_text = match.group(1).strip() if match else response.strip()
-        
+
         try:
             extracted_data = json.loads(clean_text)
-            reconstructed_search_query: str = ""
-            if (isinstance(extracted_data.get("search_query"), list)): # try and rebuild broken llm response if it gets the format wrong
-                reconstructed_search_query = " ".join(extracted_data.get("search_query"))
-                return {"search_query": reconstructed_search_query, "user_query": extracted_data.get("user_query")}
+            
+            if not isinstance(extracted_data, dict):
+                raise ValueError("[QueryHandler] | [EXCEPTION] Unexpected LLM output.")
+
+            search_query_raw = extracted_data.get("search_query")
+            user_query_raw = extracted_data.get("user_query", "")
+            reconstructed_search_query = ""
+
+            # try and salvage case in which LLM outputs the wrong format
+            if isinstance(search_query_raw, list):
+                reconstructed_search_query = " ".join(str(item) for item in search_query_raw)
+
+            # nested dict -> it has done this once, stupid LLM i told you to just output a pair <str, str> why do I even have to check for this
+            elif isinstance(search_query_raw, dict):
+                if len(search_query_raw) != 1: # absolute abomination of an output, abort and raise exception
+                    raise ValueError("[QueryHandler] | [EXCEPTION] Unexpected LLM output.")
+                
+                key = list(search_query_raw.keys())[0]
+                val = search_query_raw.get(key)
+
+                if isinstance(val, list):
+                    reconstructed_search_query = " ".join(str(item) for item in val)
+                elif isinstance(val, str):
+                    reconstructed_search_query = val 
+                else: # no clue what this could even be
+                    raise ValueError("[QueryHandler] | [EXCEPTION] Unexpected LLM output.")
+
+            elif isinstance(search_query_raw, str):
+                reconstructed_search_query = search_query_raw
+                
             else:
-                return extracted_data 
-        except json.JSONDecodeError:
-            print("[LLMResponder] Failed to parse JSON for rewrite_query. Fallback to raw response.")
-            return {"search_query": clean_text, "user_query": clean_text}
+                reconstructed_search_query = str(search_query_raw) if search_query_raw else ""
+
+            return {
+                "search_query": reconstructed_search_query.strip(), 
+                "user_query": str(user_query_raw).strip() if user_query_raw else ""
+            } 
+
+        except (json.JSONDecodeError, ValueError) as e:
+            print(f"[LLMResponder] | [WARNING] Failed to parse JSON for rewrite_query. Fallback to raw response. Reason: {e}")
+            return {"search_query": clean_text, "user_query": clean_text} # fallback if LLM gets output format wrong
 
     def check_guardrails(self, query: str, chat_history: str, prev_domain: str) -> bool:
         """
