@@ -51,7 +51,8 @@ RUN if [ "$GPU_BUILD" = "true" ]; then \
     fi
 
 # Pre-download the models weights (~150MB + ~100MB)
-RUN python -c "from sentence_transformers import CrossEncoder; CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')"
+ARG HF_TOKEN
+RUN HF_TOKEN=${HF_TOKEN} python -c "import os; from sentence_transformers import CrossEncoder; CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2', token=os.environ.get('HF_TOKEN') or None)"
 
 # Purge build tools
 RUN apt-mark manual libmariadb3 libgomp1 2>/dev/null; \

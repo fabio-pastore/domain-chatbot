@@ -68,7 +68,7 @@ class ChatHistoryManager:
         cur.execute("""
             CREATE TABLE IF NOT EXISTS parsed_urls (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                url TEXT NOT NULL,
+                url TEXT NOT NULL UNIQUE,
                 parsed_text LONGTEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
