@@ -65,10 +65,12 @@ Sapienza-DC was built to explore the feasibility of a fully local, domain-constr
      OPENAI_API_KEY=
      OPENAI_BASE_URL=
      OPENAI_MODEL_NAME=
+     HF_TOKEN=
      ```
    - Notes:
      - Adjust values based on your hardware (e.g., reduce `LLM_N_CTX` or `LLM_N_BATCH` if OOM errors occur).
      - Ensure `LLM_MODEL_PATH` points to a valid `.gguf` file (or your preferred, llama.cpp supported model format).
+     - `HF_TOKEN` is not necessary but can help avoid rate limits and increase download speeds during initialization of HF (_Hugging Face_) models.
 
 2. - Model File
      - Place your model in `/models/` (and update `LLM_MODEL_PATH` in `.env`).
@@ -139,6 +141,9 @@ When a query cannot be assigned to a domain, a generic, domain-indefinite parse 
 
 **Intelligent guardrail system**:
 every user query passes through a validation layer that classifies it as allowed, ambiguous, or rejected. Ambiguous queries prompt the user for clarification before proceeding to search. The guardrail also determines which domain best matches the query intent, enabling automatic routing to the appropriate knowledge source.
+
+**Prompt injection mitigation**:
+both user input and externally retrieved content are sanitized before reaching the LLM. Input queries are validated against suspicious patterns commonly used in prompt injection attacks, including instruction override attempts, emotional manipulation and system-level command delimiters. Text chunks extracted from web pages are filtered for embedded instructions before inclusion in the LLM context. Strong XML-style delimiters in all internal prompts enforce a strict separation between system instructions and user-provided or externally-retrieved data, reducing the attack surface for indirect prompt injection through compromised web content.
 
 **Multi-domain search with fallback**:
 the system searches across a primary target domain and supplements results from Wikipedia when needed. If Startpage-based scraping returns no results, the Wikipedia OpenSearch API acts as a fallback retriever.
