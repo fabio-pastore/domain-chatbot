@@ -30,6 +30,7 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OPENAI_BASE_URL=${OPENAI_BASE_URL:-}
       - OPENAI_MODEL_NAME=${OPENAI_MODEL_NAME:-}
+      - HF_TOKEN=${HF_TOKEN:-}
     depends_on:
       mariadb:
         condition: service_healthy

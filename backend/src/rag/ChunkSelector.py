@@ -83,7 +83,8 @@ class ChunkSelector:
             
         if cls._reranker is None:
             from sentence_transformers import CrossEncoder # type: ignore do not remove I don't want this VScode warning thank you
-            cls._reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2') # lazy loading
+            hf_token = os.getenv("HF_TOKEN") or None
+            cls._reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2', token=hf_token) # lazy loading
             
         # Prepare pairs for the CrossEncoder
         pairs = [[query, chunk_text] for _, chunk_text, _ in candidates]
