@@ -12,12 +12,12 @@ class LlamaCppResponder(BaseLLMResponder):
         Initializes the LlamaCppResponder with the given env variables.
         """
         n_threads=int(os.getenv("LLM_N_THREADS", "0")) or None
-        model_path=os.getenv("LLM_MODEL_PATH", "/app/models/Ministral-3B-Instruct-2512-Q4_K_M.gguf")
+        model_path=os.getenv("LLM_MODEL_PATH", "/app/models/Ministral-3-3B-Instruct-2512-Q4_K_M.gguf")
         
         if not os.path.exists(model_path):
             raise FileNotFoundError(
                 f"Model file not found: {model_path}\n"
-                "Please download a .gguf file for your LLM of choice (i.e. Ministral 3B 4-bit)"
+                "Please download a .gguf file for your LLM of choice (e.g. Ministral 3B 4-bit) "
                 "and place it in the configured path."
             )
 

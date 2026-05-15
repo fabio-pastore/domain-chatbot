@@ -108,3 +108,40 @@ async def proxy_delete_session(session_id: str):
             return resp.json()
     except httpx.RequestError:
         return JSONResponse(status_code=503, content={"error": "Backend service unavailable"})
+
+@app.get("/api/llm/status")
+async def proxy_llm_status():
+    async with httpx.AsyncClient(timeout=10) as client:
+        resp = await client.get(f"{BACKEND_URL}/llm/status")
+        return resp.json()
+
+
+@app.post("/api/llm/switch")
+async def proxy_llm_switch(request: Request):
+    body = await request.json()
+    async with httpx.AsyncClient(timeout=120) as client:
+        resp = await client.post(f"{BACKEND_URL}/llm/switch", json=body)
+        return resp.json()
+
+
+@app.post("/api/llm/test-api")
+async def proxy_llm_test_api(request: Request):
+    body = await request.json()
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(f"{BACKEND_URL}/llm/test-api", json=body)
+        return resp.json()
+
+
+@app.post("/api/llm/save-api-config")
+async def proxy_llm_save_api_config(request: Request):
+    body = await request.json()
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.post(f"{BACKEND_URL}/llm/save-api-config", json=body)
+        return resp.json()
+
+
+@app.get("/api/llm/api-config")
+async def proxy_llm_api_config():
+    async with httpx.AsyncClient(timeout=10) as client:
+        resp = await client.get(f"{BACKEND_URL}/llm/api-config")
+        return resp.json()

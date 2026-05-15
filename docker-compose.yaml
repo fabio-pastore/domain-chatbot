@@ -7,7 +7,8 @@ services:
       - "8001:8001"
     volumes:
       - ./backend:/app
-      - ./backend/models:/app/models
+      - ./models:/app/models
+      - ./.env:/.env
     env_file: .env
     environment:
       - PYTHONUNBUFFERED=1
