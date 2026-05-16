@@ -3,7 +3,8 @@ from fastapi import FastAPI, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
-import httpx
+import httpx # type: ignore
+from typing import Any
 
 app = FastAPI()
 
@@ -34,7 +35,7 @@ async def favicon() -> FileResponse:
 
 
 @app.get("/")
-async def index(request: Request):
+async def index(request: Request) -> Any:
     """Serve the main chat page."""
     return templates.TemplateResponse(request=request, name="index.html")
 
@@ -43,7 +44,7 @@ async def index(request: Request):
 
 
 @app.get("/api/sessions")
-async def proxy_list_sessions():
+async def proxy_list_sessions() -> Any:
     """Proxy: list all sessions from backend."""
     try:
         async with httpx.AsyncClient(timeout=10) as client:
@@ -54,7 +55,7 @@ async def proxy_list_sessions():
 
 
 @app.post("/api/sessions")
-async def proxy_create_session(request: Request):
+async def proxy_create_session(request: Request) -> Any:
     """Proxy: create a new session."""
     try:
         body = await request.json()
@@ -66,7 +67,7 @@ async def proxy_create_session(request: Request):
 
 
 @app.get("/api/sessions/{session_id}/messages")
-async def proxy_get_messages(session_id: str):
+async def proxy_get_messages(session_id: str) -> Any:
     """Proxy: get messages for a session."""
     try:
         async with httpx.AsyncClient(timeout=10) as client:
@@ -81,7 +82,7 @@ async def proxy_get_messages(session_id: str):
 from fastapi.responses import StreamingResponse
 
 @app.post("/api/chat")
-async def proxy_chat(request: Request):
+async def proxy_chat(request: Request) -> StreamingResponse:
     """Proxy: send a chat message to backend and stream response."""
     body = await request.json()
     
@@ -98,7 +99,7 @@ async def proxy_chat(request: Request):
     return StreamingResponse(stream_from_backend(), media_type="text/event-stream")
 
 @app.delete("/api/sessions/{session_id}")
-async def proxy_delete_session(session_id: str):
+async def proxy_delete_session(session_id: str) -> Any:
     """Proxy: delete a session."""
     try:
         async with httpx.AsyncClient(timeout=10) as client:
@@ -110,14 +111,14 @@ async def proxy_delete_session(session_id: str):
         return JSONResponse(status_code=503, content={"error": "Backend service unavailable"})
 
 @app.get("/api/llm/status")
-async def proxy_llm_status():
+async def proxy_llm_status() -> Any:
     async with httpx.AsyncClient(timeout=10) as client:
         resp = await client.get(f"{BACKEND_URL}/llm/status")
         return resp.json()
 
 
 @app.post("/api/llm/switch")
-async def proxy_llm_switch(request: Request):
+async def proxy_llm_switch(request: Request) -> Any:
     body = await request.json()
     async with httpx.AsyncClient(timeout=120) as client:
         resp = await client.post(f"{BACKEND_URL}/llm/switch", json=body)
@@ -125,7 +126,7 @@ async def proxy_llm_switch(request: Request):
 
 
 @app.post("/api/llm/test-api")
-async def proxy_llm_test_api(request: Request):
+async def proxy_llm_test_api(request: Request) -> Any:
     body = await request.json()
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.post(f"{BACKEND_URL}/llm/test-api", json=body)
@@ -133,7 +134,7 @@ async def proxy_llm_test_api(request: Request):
 
 
 @app.post("/api/llm/save-api-config")
-async def proxy_llm_save_api_config(request: Request):
+async def proxy_llm_save_api_config(request: Request) -> Any:
     body = await request.json()
     async with httpx.AsyncClient(timeout=15) as client:
         resp = await client.post(f"{BACKEND_URL}/llm/save-api-config", json=body)
@@ -141,7 +142,7 @@ async def proxy_llm_save_api_config(request: Request):
 
 
 @app.get("/api/llm/api-config")
-async def proxy_llm_api_config():
+async def proxy_llm_api_config() -> Any:
     async with httpx.AsyncClient(timeout=10) as client:
         resp = await client.get(f"{BACKEND_URL}/llm/api-config")
         return resp.json()

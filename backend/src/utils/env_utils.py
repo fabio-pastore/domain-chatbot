@@ -1,7 +1,7 @@
 import os
 
 
-def update_env_file(filepath: str, updates: dict):
+def update_env_file(filepath: str, updates: dict[str, str]) -> None:
     lines = []
     if os.path.exists(filepath):
         with open(filepath, "r", encoding="utf-8") as f:

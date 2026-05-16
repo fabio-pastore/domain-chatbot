@@ -233,7 +233,7 @@ Streamed response
 ### Directory structure
 
 
-_domain-chatbot/_ <br>
+_sapienza-DC/_ <br>
 _├── backend/_ <br>
 _│ ├── src/_ <br>
 _│ │ ├── api_server/_ # FastAPI application and SSE streaming <br>

@@ -1,6 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from src.llm_manager.LlamaCppResponder import LlamaCppResponder
+from src.llm_manager.OpenAIResponder import OpenAIResponder
+from src.query_handler.QueryHandler import IntentResult
 from src.query_handler.QueryHandler import query_handler
 from src.db_manager.ChatHistoryManager import chat_history_manager
 from src.rag.MWPClient import MWPClient
@@ -13,10 +16,10 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins= ["*"],
+    allow_credentials = True,
+    allow_methods = ["*"],
+    allow_headers = ["*"],
 )
 
 class ChatInput(BaseModel):
@@ -84,7 +87,7 @@ from fastapi.responses import StreamingResponse
 import json
 
 @app.post("/chat")
-def chat(message: ChatInput):
+def chat(message: ChatInput) -> StreamingResponse:
     """Processes a user's chat query and streams the response via SSE.
     
     Checks if the query is valid, retrieves relevant URLs, extracts content, selects useful chunks 
@@ -98,17 +101,17 @@ def chat(message: ChatInput):
     """
     def event_stream():
         try:
-            responder = llm_provider_manager.get_responder()
+            responder : LlamaCppResponder | OpenAIResponder | None = llm_provider_manager.get_responder()
             if responder is None:
-                status = llm_provider_manager.get_status()
+                status: dict[str, any] = llm_provider_manager.get_status()
                 yield f"data: {json.dumps({'phase': 'error', 'content': status.get('error', 'No LLM provider available. Please configure a provider in Settings.')})}\n\n"
                 return
 
             yield f"data: {json.dumps({'phase': 'status', 'content': 'Checking guardrails and intent...'})}\n\n"
-            intent_result = query_handler.process_query(message.session_id, message.query)
+            intent_result: IntentResult = query_handler.process_query(message.session_id, message.query)
 
             if not intent_result.is_allowed or intent_result.is_ambiguous:
-                rejection_msg = "Your query appears to be meaningless or invalid. Please ask a clear, answerable question." if (not intent_result.is_allowed and not intent_result.is_ambiguous) \
+                rejection_msg: str = "Your query appears to be meaningless or invalid. Please ask a clear, answerable question." if (not intent_result.is_allowed and not intent_result.is_ambiguous) \
                                 else (intent_result.requested_information) 
                 chat_history_manager.add_message(message.session_id, "user", message.query)
                 chat_history_manager.add_message(message.session_id, "assistant", rejection_msg)
@@ -117,8 +120,8 @@ def chat(message: ChatInput):
 
             yield f"data: {json.dumps({'phase': 'status', 'content': f'Searching... found {len(intent_result.relevant_urls)} sources.'})}\n\n"
             
-            extracted_contents = []
-            parsed_content = []
+            extracted_contents: list[dict[str, str]] = []
+            parsed_content: list[tuple[str, str]] = []
             
             for url in intent_result.relevant_urls:
                 is_supported_domain: bool = MWPClient.is_domain_supported(url)
@@ -139,19 +142,19 @@ def chat(message: ChatInput):
                     extracted_contents.append({"url": url, "content_preview": parsed_text[:300] + "..."})
 
             yield f"data: {json.dumps({'phase': 'status', 'content': 'Assessing and selecting relevant information...'})}\n\n"
-            rag_data = ChunkSelector.select_relevant_chunks(
+            rag_data: dict[str, list[str]] = ChunkSelector.select_relevant_chunks(
                 query=intent_result.search_query, parsed_pages=parsed_content
             )
-            relevant_chunks = []
+            relevant_chunks: list[str] = []
             for chunks in rag_data.values():
                 relevant_chunks.extend(chunks)
             
-            query_context_data = ContextGenerator.generate_llm_context(extracted_chunks=relevant_chunks)
+            query_context_data: str = ContextGenerator.generate_llm_context(extracted_chunks=relevant_chunks)
             
             yield f"data: {json.dumps({'phase': 'status', 'content': 'Generating answer...'})}\n\n"
             
-            full_answer = ""
-            sources_data = ""
+            full_answer: str = ""
+            sources_data: str = ""
             sources_data = "\n\n**Fonti**:\n " + "\n".join(intent_result.relevant_urls)
 
             for token in query_handler.stream_answer_query(message.session_id, intent_result.user_query, query_context_data):
@@ -197,7 +200,7 @@ def get_session_messages(session_id: str):
 @app.delete("/clear_cache")
 def clear_cache() -> None:
     """Deletes all stored URL parsed texts from DB"""
-    cleared = chat_history_manager.clear_all_url_cache()
+    cleared: bool = chat_history_manager.clear_all_url_cache()
     if not cleared:
         raise HTTPException(status_code=404, detail="Failed to clear parsed URLs cache")
     return {"status": "cleared"}
@@ -205,7 +208,7 @@ def clear_cache() -> None:
 @app.delete("/sessions/{session_id}")
 def delete_session(session_id: str):
     """Delete a session and all its messages."""
-    deleted = chat_history_manager.delete_session(session_id)
+    deleted: bool = chat_history_manager.delete_session(session_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Session not found")
     return {"status": "deleted"}

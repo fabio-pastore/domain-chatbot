@@ -5,7 +5,7 @@ class StartpageUrlRetriever(UrlRetriever):
 
     __STARTPAGE_SEARCH_RESULTS_LIMIT: int = 5
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initializes the StartpageUrlRetriever instance.
         """

@@ -1,6 +1,7 @@
 import json
 import regex as re
 from abc import ABC, abstractmethod
+from typing import Generator, Any
 from src.llm_manager.PromptBuilder import PromptBuilder
 
 
@@ -11,7 +12,7 @@ class BaseLLMResponder(ABC):
         ...
 
     @abstractmethod
-    def _stream_llm(self, prompt: str):
+    def _stream_llm(self, prompt: str) -> Generator[str, None, None]:
         ...
 
     def rewrite_query(self, chat_history: str, current_query: str) -> dict:
@@ -78,7 +79,7 @@ class BaseLLMResponder(ABC):
             print(f"[LLMResponder] | [WARNING] Failed to parse JSON for rewrite_query. Fallback to raw response. Reason: {e}")
             return {"search_query": clean_text, "user_query": clean_text} # fallback if LLM gets output format wrong
 
-    def check_guardrails(self, query: str, chat_history: str, prev_domain: str) -> bool:
+    def check_guardrails(self, query: str, chat_history: str, prev_domain: str) -> dict[str, Any]:
         """
         Checks if a query is allowed with specific prompt to LLM.
 
@@ -139,7 +140,7 @@ class BaseLLMResponder(ABC):
         response = self._call_llm(prompt)
         return response
 
-    def stream_user_query(self, query: str, query_context_data: str):
+    def stream_user_query(self, query: str, query_context_data: str) -> Generator[str, None, None]:
         """
         Generates a streaming answer to a user's query based on context data.
         """

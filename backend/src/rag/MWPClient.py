@@ -49,7 +49,7 @@ class MWPClient:
             return None
 
     @classmethod
-    def parse_query(cls, query: str, target_domain: str, limit: int) -> list[str]:
+    def parse_query(cls, query: str, target_domain: str, limit: int) -> list[str] | None:
         """
         Sends the query to MWP and returns the scraped web search URLs.
         Args:

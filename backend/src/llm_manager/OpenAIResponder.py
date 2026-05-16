@@ -1,5 +1,6 @@
 from src.llm_manager.BaseLLMResponder import BaseLLMResponder
 from openai import OpenAI
+from typing import Generator
 
 
 class OpenAIResponder(BaseLLMResponder):
@@ -21,7 +22,7 @@ class OpenAIResponder(BaseLLMResponder):
             print(f"Error calling OpenAI-compatible API: {e}")
             raise
 
-    def _stream_llm(self, prompt: str):
+    def _stream_llm(self, prompt: str) -> Generator[str, None, None]:
         try:
             stream = self.client.chat.completions.create(
                 model=self.model_name,

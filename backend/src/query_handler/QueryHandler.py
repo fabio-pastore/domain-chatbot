@@ -2,8 +2,10 @@ from pydantic import BaseModel
 from src.db_manager.ChatHistoryManager import chat_history_manager
 from src.llm_manager.LLMProviderManager import llm_provider_manager
 
+from typing import Generator
+from src.llm_manager.BaseLLMResponder import BaseLLMResponder
 
-def _get_responder():
+def _get_responder() -> BaseLLMResponder | None:
     return llm_provider_manager.get_responder()
 
 from src.url_retriever.StartpageUrlRetriever import StartpageUrlRetriever
@@ -129,7 +131,7 @@ class QueryHandler:
         """
         return _get_responder().answer_user_query(query, query_context_data)
 
-    def stream_answer_query(self, session_id: str, query: str, query_context_data: str):
+    def stream_answer_query(self, session_id: str, query: str, query_context_data: str) -> Generator[str, None, None]:
         """
         Streams an answer to a user query using the LLM responder.
         """

@@ -4,6 +4,7 @@ from abc import ABC
 from src.llm_manager.BaseLLMResponder import BaseLLMResponder
 from llama_cpp import Llama # type: ignore
 from src.llm_manager.BaseLLMResponder import BaseLLMResponder
+from typing import Generator
 
 class LlamaCppResponder(BaseLLMResponder):
 
@@ -12,7 +13,7 @@ class LlamaCppResponder(BaseLLMResponder):
         Initializes the LlamaCppResponder with the given env variables.
         """
         n_threads=int(os.getenv("LLM_N_THREADS", "0")) or None
-        model_path=os.getenv("LLM_MODEL_PATH", "/app/models/Ministral-3-3B-Instruct-2512-Q4_K_M.gguf")
+        model_path=os.getenv("LLM_MODEL_PATH", "/models/Ministral-3-3B-Instruct-2512-Q4_K_M.gguf")
         
         if not os.path.exists(model_path):
             raise FileNotFoundError(
@@ -54,7 +55,7 @@ class LlamaCppResponder(BaseLLMResponder):
             print(f"Error calling llama.cpp model: {e}")
             return ""
 
-    def _stream_llm(self, prompt: str):
+    def _stream_llm(self, prompt: str) -> Generator[str, None, None]:
         """
         Calls the local llama.cpp model with the given prompt and yields response tokens.
 

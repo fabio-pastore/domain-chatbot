@@ -19,7 +19,7 @@ class ChunkSelector:
     _reranker = None
 
     @staticmethod
-    def __calculate_cosine_similarity(v1, v2) -> float:
+    def __calculate_cosine_similarity(v1: list[float], v2: list[float]) -> float:
         """
         Bi-Encoder: calculates the cosine similarity between two numeric vectors.
         Extremely fast but not very accurate.

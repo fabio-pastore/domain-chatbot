@@ -104,7 +104,7 @@ class ChatHistoryManager:
             for row in rows
         ]
     
-    def clear_all_url_cache(self):
+    def clear_all_url_cache(self) -> bool:
         """
         Clears all records from the parsed_urls table and resets the auto-increment ID.
         """
@@ -154,7 +154,7 @@ class ChatHistoryManager:
         )
         cur.close()
 
-    def add_message(self, session_id: str, role: str, content: str):
+    def add_message(self, session_id: str, role: str, content: str) -> None:
         """Add a message to a session. Auto-creates the session if needed."""
         if not self.session_exists(session_id):
             self.create_session(session_id)
@@ -218,7 +218,7 @@ class ChatHistoryManager:
         cur.close()
         return row[0] if row and row[0] else ""
     
-    def get_parsed_text(self, url):
+    def get_parsed_text(self, url: str) -> str | None:
         """
         Checks if a parsed text exists for a given URL and returns it.
         Returns None if the URL is not found.
@@ -241,7 +241,7 @@ class ChatHistoryManager:
         finally:
             cur.close()
 
-    def save_parsed_text(self, url, parsed_text):
+    def save_parsed_text(self, url: str, parsed_text: str) -> bool:
         """
         Saves the parsed text for a given URL into the database.
         """

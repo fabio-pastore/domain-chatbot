@@ -6,7 +6,7 @@ class WikipediaUrlRetriever(UrlRetriever):
     __WIKIPEDIA_API_URL: str = "https://it.wikipedia.org/w/api.php"
     __WIKIPEDIA_SEARCH_RESULT_LIMIT: int = 3
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initializes the WikipediaUrlRetriever instance.
         """
