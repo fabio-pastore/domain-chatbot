@@ -49,10 +49,10 @@ Sapienza-DC was built to explore the feasibility of a fully local, domain-constr
 1. `.env` File (in project root)
    - Required variables:
      ```env
-     MARIADB_ROOT_PASSWORD=BaFu5wRZGcO~S6*X^h0DM/TvE
-     MARIADB_USER=chatbot
-     MARIADB_PASSWORD=p/Le5,yh4VInU54vL=^1s521q!.V3t
-     MARIADB_DATABASE=chatbot
+     MARIADB_ROOT_PASSWORD=
+     MARIADB_USER=
+     MARIADB_PASSWORD=
+     MARIADB_DATABASE=
      ```
    - Optional variables:
      ```env
