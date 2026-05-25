@@ -193,30 +193,9 @@ chat history is persisted across sessions. The system uses historical context to
 
 The project follows a microservice-oriented architecture orchestrated through Docker compose, with a clear separation between the backend RAG pipeline and the frontend chat interface.
 
-<pre>
-User query 
-    ↓ 
-Guardrail validation (Ministral-3-3B-Instruct-2512-Q4_K_M *)
-    ↓
-Query rewriting (Ministral-3-3B-Instruct-2512-Q4_K_M *)
-    ↓
-URL retrieval (SSE scraper)
-    ↓ 
-Web parsing (MWP)
-    ↓ 
-Chunking (LangChain-RecursiveCharacterTextSplitter)
-    ↓ 
-Embedding  (intfloat/multilingual-e5-small)
-    ↓ 
-Reranking (cross-encoder/ms-marco-MiniLM-L-6-v2)
-    ↓ 
-Context assembly 
-    ↓ 
-LLM generation (Ministral-3-3B-Instruct-2512-Q4_K_M *)
-    ↓ 
-Streamed response
-</pre>
-\* tested with Ministral-3-3B-Instruct-2512-Q4_K_M, though no specific model constraint was applied
+<img width="1902" height="964" alt="sapienza-dc-rag-pipeline-diagram_dark" src="https://github.com/user-attachments/assets/8c228633-dad1-4954-b02a-8cddb7021c98" />
+
+_**NOTE**_: the pipeline was tested with ```Ministral-3-3B-Instruct-2512-Q4_K_M```, though using this specific model is not a requirement.
 
 ## Technology stack
 
